@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const reExplainBtn = document.getElementById('reExplainBtn');
   const aiNotice = document.getElementById('aiNotice');
   const aiNoticeText = document.getElementById('aiNoticeText');
+  const aiVisionNotice = document.getElementById('aiVisionNotice');
+  const aiVisionNoticeText = document.getElementById('aiVisionNoticeText');
   const aiLoading = document.getElementById('aiLoading');
   const aiLoadingLabel = document.getElementById('aiLoadingLabel');
   const aiResultCard = document.getElementById('aiResultCard');
@@ -51,39 +53,65 @@ document.addEventListener('DOMContentLoaded', async () => {
   const aiBreakdownWrap = document.getElementById('aiBreakdownWrap');
   const aiBreakdownList = document.getElementById('aiBreakdownList');
 
-  // Diagnostics & JSON Tab Elements
+  // Tab Navigation Elements
   const tabQuestionBtn = document.getElementById('tabQuestionBtn');
+  const tabAgentBtn = document.getElementById('tabAgentBtn');
   const tabDiagBtn = document.getElementById('tabDiagBtn');
   const questionTabView = document.getElementById('questionTabView');
+  const agentTabView = document.getElementById('agentTabView');
   const diagTabView = document.getElementById('diagTabView');
+
+  // Diagnostics Tab Elements
   const diagUrl = document.getElementById('diagUrl');
   const diagHash = document.getElementById('diagHash');
   const diagJson = document.getElementById('diagJson');
   const copyJsonBtn = document.getElementById('copyJsonBtn');
   const copyJsonTopBtn = document.getElementById('copyJsonTopBtn');
 
+  // Auto-Pilot Elements
+  const agentStateBadge = document.getElementById('agentStateBadge');
+  const agentProgressBadge = document.getElementById('agentProgressBadge');
+  const agentProgressBar = document.getElementById('agentProgressBar');
+  const agentActionBox = document.getElementById('agentActionBox');
+  const actionExpandHint = document.querySelector('.action-expand-hint');
+  const agentActionText = document.getElementById('agentActionText');
+  const agentVisionBadge = document.getElementById('agentVisionBadge');
+  const agentToggleBtn = document.getElementById('agentToggleBtn');
+  const agentToggleText = document.getElementById('agentToggleText');
+  const agentStepBtn = document.getElementById('agentStepBtn');
+  const agentStopBtn = document.getElementById('agentStopBtn');
+  const agentDelaySelect = document.getElementById('agentDelaySelect');
+  const agentModelLabel = document.getElementById('agentModelLabel');
+  const clearAgentLogsBtn = document.getElementById('clearAgentLogsBtn');
+  const agentLogFeed = document.getElementById('agentLogFeed');
+
   let currentQuestionData = null;
   let isOllamaOnline = false;
+  let currentAgentStatus = null;
 
   // --------------------------------------------------------------------------
   // Tab Navigation
   // --------------------------------------------------------------------------
 
   function switchTab(tabName) {
+    [tabQuestionBtn, tabAgentBtn, tabDiagBtn].forEach(b => b.classList.remove('active'));
+    [questionTabView, agentTabView, diagTabView].forEach(v => v.classList.add('hidden'));
+
     if (tabName === 'question') {
       tabQuestionBtn.classList.add('active');
-      tabDiagBtn.classList.remove('active');
       questionTabView.classList.remove('hidden');
-      diagTabView.classList.add('hidden');
+    } else if (tabName === 'agent') {
+      tabAgentBtn.classList.add('active');
+      agentTabView.classList.remove('hidden');
+      fetchAgentStatus();
     } else {
       tabDiagBtn.classList.add('active');
-      tabQuestionBtn.classList.remove('active');
       diagTabView.classList.remove('hidden');
-      questionTabView.classList.add('hidden');
     }
   }
 
   tabQuestionBtn.addEventListener('click', () => switchTab('question'));
+  tabAgentBtn.addEventListener('click', () => switchTab('agent'));
   tabDiagBtn.addEventListener('click', () => switchTab('diag'));
 
   // --------------------------------------------------------------------------
@@ -146,20 +174,38 @@ document.addEventListener('DOMContentLoaded', async () => {
           chrome.storage.local.get(['selectedAiModel'], (items) => {
             const savedModel = items?.selectedAiModel;
             aiModelSelect.innerHTML = '';
+
+            // Sort models so coder & vision models appear first
+            const sortedModels = [...res.models].sort((a, b) => {
+              const aIsCoder = a.includes('coder');
+              const bIsCoder = b.includes('coder');
+              if (aIsCoder && !bIsCoder) return -1;
+              if (!aIsCoder && bIsCoder) return 1;
+              return 0;
+            });
             
-            res.models.forEach(m => {
+            sortedModels.forEach(m => {
               const opt = document.createElement('option');
               opt.value = m;
-              opt.textContent = m;
-              if (savedModel ? m === savedModel : m.includes('qwen2.5-coder') || m.includes('coder')) {
+              let label = m;
+              if (m.includes('coder')) {
+                label = `${m} (High Accuracy Code)`;
+              } else if (/(?:vision|llava|bakllava|vl)/i.test(m)) {
+                label = `${m} [Vision Enabled]`;
+              } else if (m.includes(':1b')) {
+                label = `${m} (Fast / Low Accuracy)`;
+              }
+              opt.textContent = label;
+
+              if (savedModel ? m === savedModel : m.includes('qwen2.5-coder:7b') || m.includes('coder')) {
                 opt.selected = true;
               }
               aiModelSelect.appendChild(opt);
             });
 
             // If nothing was selected, select first
-            if (!aiModelSelect.value && res.models[0]) {
-              aiModelSelect.value = res.models[0];
+            if (!aiModelSelect.value && sortedModels[0]) {
+              aiModelSelect.value = sortedModels[0];
             }
 
             // Check if current question already has a cached explanation for this model
@@ -338,9 +384,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     questionStatement.textContent = data.questionText || '(No question text detected)';
     timestampBadge.textContent = formatTime(data.timestamp);
 
-    // Media / Images
+    // Media / Images & Vision Model Handling
     questionMedia.innerHTML = '';
-    if (data.images && data.images.length > 0) {
+    const hasImages = Array.isArray(data.images) && data.images.length > 0;
+    if (hasImages) {
       questionMedia.classList.remove('hidden');
       data.images.forEach(imgData => {
         const img = document.createElement('img');
@@ -348,8 +395,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         img.alt = imgData.alt || 'Question diagram';
         questionMedia.appendChild(img);
       });
+
+      // Show vision advisory banners
+      if (aiVisionNotice) aiVisionNotice.classList.remove('hidden');
+      if (agentVisionBadge) agentVisionBadge.classList.remove('hidden');
+
+      const currentModel = aiModelSelect.value || '';
+      const isCurrentVision = /(?:vision|llava|bakllava|vl)/i.test(currentModel);
+
+      if (!isCurrentVision) {
+        // Auto-detect if a vision model is available in the options
+        const visionOption = Array.from(aiModelSelect.options).find(opt => /(?:vision|llava|bakllava|vl)/i.test(opt.value));
+        if (visionOption) {
+          aiModelSelect.value = visionOption.value;
+          chrome.storage.local.set({ selectedAiModel: visionOption.value });
+          if (agentModelLabel) agentModelLabel.textContent = visionOption.value;
+          if (aiVisionNoticeText) {
+            aiVisionNoticeText.textContent = `Diagram Detected · Auto-switched to ${visionOption.value}`;
+          }
+        } else {
+          if (aiVisionNoticeText) {
+            aiVisionNoticeText.textContent = 'Diagram Detected · No vision model found (run `ollama pull llava`)';
+          }
+        }
+      } else {
+        if (aiVisionNoticeText) {
+          aiVisionNoticeText.textContent = `Diagram Detected · Vision Model Active (${currentModel})`;
+        }
+      }
     } else {
       questionMedia.classList.add('hidden');
+      if (aiVisionNotice) aiVisionNotice.classList.add('hidden');
+      if (agentVisionBadge) agentVisionBadge.classList.add('hidden');
     }
 
     // Selection Summary
@@ -511,11 +588,176 @@ document.addEventListener('DOMContentLoaded', async () => {
     copyJsonTopBtn.addEventListener('click', () => copyJsonToClipboard(copyJsonTopBtn));
   }
 
+  // --------------------------------------------------------------------------
+  // Auto-Pilot Controller
+  // --------------------------------------------------------------------------
+
+  function updateAgentUI(status) {
+    if (!status) return;
+    currentAgentStatus = status;
+
+    const state = status.state || 'IDLE';
+    agentStateBadge.textContent = state;
+    agentStateBadge.className = `agent-state-badge ${state.toLowerCase()}`;
+
+    // Progress
+    const cur = status.currentStep || 0;
+    const tot = status.totalSteps || 0;
+    agentProgressBadge.textContent = tot > 0 ? `Question ${cur} of ${tot}` : `Question ${cur}`;
+    const pct = tot > 0 ? Math.min(100, Math.round((cur / tot) * 100)) : 0;
+    agentProgressBar.style.width = `${pct}%`;
+
+    // Action text
+    agentActionText.textContent = status.lastAction || 'Ready to run.';
+
+    // Toggle button state
+    if (status.isRunning) {
+      agentToggleBtn.className = 'btn btn-pilot-start paused';
+      agentToggleText.textContent = 'Pause Auto-Pilot';
+      agentStopBtn.disabled = false;
+      agentStepBtn.disabled = true;
+    } else {
+      agentToggleBtn.className = 'btn btn-pilot-start';
+      agentToggleText.textContent = state === 'PAUSED' ? 'Resume Auto-Pilot' : 'Start Auto-Pilot';
+      agentStopBtn.disabled = (state === 'IDLE' || state === 'COMPLETED');
+      agentStepBtn.disabled = false;
+    }
+
+    // Model label
+    if (status.selectedModel) {
+      agentModelLabel.textContent = status.selectedModel;
+    } else if (aiModelSelect?.value) {
+      agentModelLabel.textContent = aiModelSelect.value;
+    }
+
+    // Render activity logs
+    if (Array.isArray(status.recentLogs) && status.recentLogs.length > 0) {
+      agentLogFeed.innerHTML = '';
+      status.recentLogs.forEach(entry => {
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+
+        const time = document.createElement('span');
+        time.className = 'feed-time';
+        time.textContent = entry.timestamp;
+
+        const msg = document.createElement('span');
+        msg.className = `feed-msg ${entry.type || 'info'}`;
+        msg.textContent = entry.message;
+
+        item.appendChild(time);
+        item.appendChild(msg);
+        agentLogFeed.appendChild(item);
+      });
+      agentLogFeed.scrollTop = agentLogFeed.scrollHeight;
+    }
+  }
+
+  async function fetchAgentStatus() {
+    const res = await NewtonMessaging.sendToActiveTab({
+      action: NewtonMessaging.ACTIONS.GET_AGENT_STATUS
+    });
+    if (res && res.success && res.data && res.data.status) {
+      updateAgentUI(res.data.status);
+    }
+  }
+
+  agentToggleBtn.addEventListener('click', async () => {
+    if (currentAgentStatus && currentAgentStatus.isRunning) {
+      // Pause
+      const res = await NewtonMessaging.sendToActiveTab({
+        action: NewtonMessaging.ACTIONS.PAUSE_AUTONOMOUS_AGENT
+      });
+      if (res?.data?.status) updateAgentUI(res.data.status);
+    } else {
+      // Start or Resume
+      const model = aiModelSelect.value || 'qwen2.5-coder:7b';
+      const delay = parseInt(agentDelaySelect.value, 10) || 1500;
+      const res = await NewtonMessaging.sendToActiveTab({
+        action: NewtonMessaging.ACTIONS.START_AUTONOMOUS_AGENT,
+        payload: { model, stepDelayMs: delay }
+      });
+      if (res?.data?.status) updateAgentUI(res.data.status);
+    }
+  });
+
+  async function triggerAgentStep() {
+    if (agentStepBtn.disabled) return;
+    agentStepBtn.disabled = true;
+    const prevContent = agentStepBtn.innerHTML;
+    agentStepBtn.innerHTML = '<span class="spinner-sm"></span> Stepping...';
+    agentActionText.textContent = 'Executing 1 Question Step...';
+
+    try {
+      const model = aiModelSelect.value || 'qwen2.5-coder:7b';
+      const res = await NewtonMessaging.sendToActiveTab({
+        action: NewtonMessaging.ACTIONS.STEP_AUTONOMOUS_AGENT,
+        payload: { model, autoNavigate: false }
+      });
+      if (res?.data?.status) updateAgentUI(res.data.status);
+    } catch (err) {
+      console.warn('[NewtonPilot] Step error:', err);
+    } finally {
+      agentStepBtn.disabled = false;
+      agentStepBtn.innerHTML = prevContent;
+    }
+  }
+
+  agentStepBtn.addEventListener('click', triggerAgentStep);
+
+  agentStopBtn.addEventListener('click', async () => {
+    const res = await NewtonMessaging.sendToActiveTab({
+      action: NewtonMessaging.ACTIONS.STOP_AUTONOMOUS_AGENT
+    });
+    if (res?.data?.status) updateAgentUI(res.data.status);
+  });
+
+  clearAgentLogsBtn.addEventListener('click', () => {
+    agentLogFeed.innerHTML = '<div class="feed-empty-hint">Log feed cleared.</div>';
+  });
+
+  // Expandable action text card
+  if (agentActionBox) {
+    agentActionBox.addEventListener('click', () => {
+      const isExpanded = agentActionBox.classList.toggle('expanded');
+      if (actionExpandHint) {
+        actionExpandHint.textContent = isExpanded ? 'Collapse ▴' : 'Expand ▾';
+      }
+    });
+  }
+
+  // Keyboard navigation shortcuts within popup
+  document.addEventListener('keydown', (e) => {
+    const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+    if (activeTag === 'input' || activeTag === 'select' || activeTag === 'textarea') {
+      return;
+    }
+
+    if ((e.key === 's' || e.key === 'S') && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      triggerAgentStep();
+    } else if ((e.key === 'p' || e.key === 'P') && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      agentToggleBtn.click();
+    } else if ((e.key === 'i' || e.key === 'I') && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      inspectBtn.click();
+    } else if (e.key === '1') {
+      switchTab('question');
+    } else if (e.key === '2') {
+      switchTab('agent');
+    } else if (e.key === '3') {
+      switchTab('diag');
+    }
+  });
+
   // Listen for live background or content script broadcasts
   if (chrome?.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.action === NewtonMessaging.ACTIONS.QUESTION_UPDATED) {
         renderQuestion(message.payload);
+      } else if (message?.action === NewtonMessaging.ACTIONS.AGENT_STATE_UPDATED) {
+        updateAgentUI(message.payload);
       }
     });
   }
@@ -523,4 +765,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial Load
   checkTabAndInitialize();
   checkOllamaStatus();
+  fetchAgentStatus();
 });

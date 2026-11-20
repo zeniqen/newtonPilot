@@ -1,108 +1,255 @@
-# NewtonPilot 🚀 — AI-Powered Chrome Extension
+# NewtonPilot
 
-**NewtonPilot** is a Chrome extension (Manifest V3) designed as a learning and review companion for practice MCQ quizzes and assessments on Newton School's student portal (`https://my.newtonschool.co/`).
+NewtonPilot is an autonomous AI Chrome Extension (Manifest V3) and pedagogical study companion engineered specifically for Newton School's practice MCQ assessment portal (`https://my.newtonschool.co/`).
 
-> **Ethical & Safety Notice**: NewtonPilot is built exclusively as an interactive learning, study, and review companion. It does **not** perform unattended quiz solving, automatic assessment submission, or bypass any portal security or proctoring controls.
-
----
-
-## 1. Project Overview & Features
-
-- **Dynamic Question Extraction**: Parses active questions, options, selection states, question format (single-choice, multi-select, true/false), and diagrams.
-- **SPA & Mutation Observer**: Detects question changes and route navigation on Newton School's React-based portal with debounced deduplication.
-- **Raycast/Linear-Inspired Dark UI**: Polished, modern popup interface displaying live question previews, badges, selection states, and developer diagnostics.
-- **Local JSON Diagnostics**: Allows one-click copying of extracted structured JSON for debugging and portal verification.
-- **Phase 2 Ready**: Includes decoupled Ollama integration interfaces (`services/ollama-provider.js`) for concept explanations in Phase 2.
+It pairs dynamic React DOM extraction and synthetic event dispatching with a local Ollama LLM backend to deliver instant question explanations, single-step question assistance, and full-loop autonomous assessment solving for practice and mock speedrunning environments.
 
 ---
 
-## 2. Technology Stack
+## Architecture Overview
 
-- **Platform**: Google Chrome (Manifest V3)
-- **Frontend**: Vanilla HTML5, Modern CSS3 (CSS Variables, Flexbox), Vanilla JavaScript (ES2022)
-- **DOM Observation**: Native `MutationObserver` + HTML5 History API interceptor
-- **Icons**: Custom scalable SVG and multi-resolution PNGs (16px, 48px, 128px)
-- **AI Backend (Phase 2)**: Local Ollama client (`http://localhost:11434`)
-
----
-
-## 3. Extension Directory Structure
-
-```text
-newtonpilot/
-├── manifest.json              # Chrome Manifest V3 configuration
-├── popup/
-│   ├── popup.html             # Compact dark-themed popup view
-│   ├── popup.css              # Linear/Raycast design system
-│   └── popup.js               # Popup controller & state renderer
-├── scripts/
-│   ├── content.js             # Content script coordinator
-│   ├── extractor.js           # Multi-tier DOM question extraction engine
-│   └── observer.js            # Debounced MutationObserver for React SPA
-├── background/
-│   └── service-worker.js      # Background service worker & storage cache
-├── services/
-│   └── ollama-provider.js     # Prepared local Ollama integration interface
-├── utils/
-│   └── messaging.js           # Standardized Chrome runtime messaging protocol
-├── assets/
-│   └── icons/                 # Generated extension icons (16, 48, 128px + SVG)
-└── README.md
+```
+                               ┌──────────────────────────────────────────────┐
+                               │       Newton School Assessment Portal        │
+                               │         (https://my.newtonschool.co)         │
+                               └──────────────────────┬───────────────────────┘
+                                                      │
+                                                      │ (DOM Extraction & Synthetic Events)
+                                                      ▼
+┌─────────────────────────┐             ┌─────────────────────────────────────────────┐
+│      Local Ollama       │◄────────────┤                 NewtonPilot                 │
+│  (http://localhost:11434)│ (CORS DNR)  │         Chrome Extension (MV3)              │
+│                         ├────────────►│                                             │
+│ • qwen2.5-coder:7b      │             │  • DOM Extractor (Multi-tier fallback)      │
+│ • llava:7b (Vision)     │             │  • Action Executor (React event dispatch)   │
+│ • llama3.2:1b (Fast)    │             │  • Autonomous State Loop (9-step machine)   │
+└─────────────────────────┘             │  • Live Sync & Global Chrome Hotkeys        │
+                                        └─────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. How to Load the Unpacked Extension in Chrome
+## Prerequisites
 
-1. Open Google Chrome.
-2. Navigate to `chrome://extensions/` in the URL bar.
-3. In the top right corner, toggle **Developer mode** to **ON**.
-4. Click the **Load unpacked** button in the top left.
-5. In the file picker, select the `newtonpilot` folder:
-   `/Users/zeniqen/Documents/assignments-extension/newtonpilot`
+Before installing the extension, ensure your device has:
+
+1. **Google Chrome** (or any Chromium browser such as Brave, Arc, Edge).
+2. **Ollama** installed on your system:
+   - **macOS**: `brew install ollama` (or download from [ollama.com](https://ollama.com/download))
+   - **Linux**: `curl -fsSL https://ollama.com/install.sh | sh`
+   - **Windows**: Download installer from [ollama.com/download](https://ollama.com/download)
+3. **Node.js** (v18+) *[Optional]*: Only required if you want to run the automated unit test suite.
+
+---
+
+## Step-by-Step Setup Guide
+
+### Step 1: Install and Configure Ollama Models
+
+Open your terminal and pull the recommended models:
+
+```bash
+# 1. Primary code & reasoning model (High accuracy on Python/programming syntax)
+ollama pull qwen2.5-coder:7b
+
+# 2. Vision model (Required for questions containing diagrams, figures, or code screenshots)
+ollama pull llava:7b
+
+# 3. Optional: Lightweight model (For fast responses or lower-spec machines)
+ollama pull llama3.2:1b
+```
+
+### Step 2: Start the Ollama Local Daemon
+
+Start Ollama with cross-origin requests enabled so the extension can communicate with it:
+
+```bash
+OLLAMA_ORIGINS="*" ollama serve
+```
+
+> **Note**: Keep this terminal window open while using the extension. To verify Ollama is responding, open another terminal and run:
+> ```bash
+> curl http://localhost:11434/api/tags
+> ```
+> You should see a JSON listing of your installed models.
+
+---
+
+### Step 3: Install NewtonPilot in Chrome
+
+1. Clone or download this repository to your machine:
+   ```bash
+   git clone https://github.com/your-username/assignments-extension.git
+   cd assignments-extension
+   ```
+2. Open Google Chrome and enter `chrome://extensions/` in the URL address bar.
+3. In the top-right corner of the Extensions page, toggle **Developer mode** to **ON**.
+4. Click the **Load unpacked** button in the top-left toolbar.
+5. In the file picker, select the `newtonpilot` folder (inside `assignments-extension/newtonpilot`).
 6. Click **Select** / **Open**.
-7. Pin **NewtonPilot** to your Chrome toolbar by clicking the puzzle icon in Chrome.
+7. NewtonPilot will appear in your extensions list. Click the puzzle icon in Chrome's top toolbar and click the pin icon next to **NewtonPilot** for quick access.
 
 ---
 
-## 5. Usage Guide
+## How to Use
 
-### Inspecting a Question
-1. Log in to `https://my.newtonschool.co/`.
-2. Open a practice course quiz or assessment (e.g. `https://my.newtonschool.co/course/.../assessment/...`).
-3. Click the **NewtonPilot** icon in your toolbar.
-4. The extension automatically queries the active tab. You can click **Inspect** at any time to re-run extraction on demand.
-
-### Auto-Monitoring Dynamic Changes
-- Use the **Auto-Monitor Quiz** toggle at the top of the popup.
-- When enabled, `NewtonObserver` automatically listens for DOM mutations as you navigate between questions or click options, updating the popup in real time.
-
-### Developer Diagnostics & Copying JSON
-1. Click **Developer Diagnostics** at the bottom of the popup to expand the debug panel.
-2. View the parsed payload and content hash.
-3. Click **Copy JSON** to copy the complete extracted data to your clipboard.
+### 1. Log in to Newton School
+1. Navigate to [my.newtonschool.co](https://my.newtonschool.co/) and log in.
+2. Open any active practice quiz or assessment (e.g. `https://my.newtonschool.co/course/.../assessment/...`).
 
 ---
 
-## 6. How to Provide Newton Portal DOM Structure for Selectors Fine-Tuning
+### 2. Operating Modes
 
-Because Newton School requires authentication, you can help fine-tune portal-specific selectors by:
+Open the extension popup by clicking the NewtonPilot icon in your Chrome toolbar.
 
-1. Opening an active assessment question on `https://my.newtonschool.co/`.
-2. Opening Chrome DevTools (`Cmd + Option + I` on macOS or `F12`).
-3. Inspecting the main question card/container element.
-4. Right-clicking the container element in the Elements tab -> **Copy** -> **Copy outerHTML** (or copying relevant snippets).
-5. Pasting that snippet into the conversation or saving it into a `.html` file.
-6. Alternatively, click **Developer Diagnostics** -> **Copy JSON** in NewtonPilot and share the output.
+#### Mode A: Question View & Local AI Concept Tutor
+- **Live Sync**: The toolbar displays `Live Sync: Passive`. This automatically extracts the question statement, format, options, and diagrams whenever a new question is loaded.
+- **Inspect**: Click **Inspect** (or press `⌥I` / `Alt+I`) to manually refresh extraction at any moment.
+- **Explain**: Click **Explain** to trigger deep reasoning. Local Ollama will return:
+  - Suggested answer letter with confidence rating.
+  - Core conceptual summary.
+  - Pedagogical walkthrough explaining why the answer is correct.
+  - Collapsible **Option Breakdown** analyzing each distractor option.
+
+#### Mode B: Step-by-Step Semi-Autonomous Solving
+- Click **Step 1 Q** (or press `⌥S` / `Alt+Shift+S`).
+- NewtonPilot will:
+  1. Extract the active question.
+  2. Send it to Ollama for evaluation.
+  3. Locate the predicted option element and dispatch simulated pointer down, mouse down, and click events.
+  4. Leave you on the question so you can verify the selection before proceeding.
+
+#### Mode C: Fully Autonomous Speedrun Auto-Pilot
+- Click the **Auto-Pilot** tab in the popup.
+- Select your desired pacing:
+  - `0.8s (Fast)`: For mock exam speedruns.
+  - `1.5s (Balanced)`: Default recommended speed.
+  - `2.5s (Careful)`: High-latency network buffer.
+- Click **Start Auto-Pilot** (or press `⌥P` / `Alt+Shift+P`).
+- The agent loop runs continuously:
+  - It extracts the current question.
+  - Evaluates the answer with Ollama.
+  - Clicks the option.
+  - Clicks the `Next >` button.
+  - Automatically halts when it reaches the final question or detects completion.
+- Click **Pause Auto-Pilot** or hit the emergency stop button at any point to halt execution.
 
 ---
 
-## 7. Known Limitations & Phase 2 Roadmap
+### 3. Diagram and Multimodal Image Questions
 
-### Limitations (Phase 1)
-- **Portal Login Required**: Cannot access behind-the-login assessment questions without an active user session in the browser.
-- **Dynamic React Lazy Loading**: If questions load over slow networks, click **Inspect** once the question renders.
+Some questions on Newton School include screenshots, syntax diagrams, or flowcharts.
+- When an image is detected in the question statement, NewtonPilot surfaces a **Diagram Detected** badge.
+- If you have `llava:7b` (or any model containing `vision`, `llava`, or `vl`) installed in Ollama, NewtonPilot will automatically switch to it and pass the image data to Ollama as base64 for multimodal visual analysis.
+- If no vision model is found, the banner reminds you to run `ollama pull llava:7b`.
 
-### Phase 2 Roadmap
-- **Local Ollama Explanations**: Enable one-click pedagogical breakdown and conceptual explanation using local Ollama (`llama3`, `mistral`, or `deepseek-r1`).
-- **Review Notes Export**: Export question sets and explanations to Markdown or Anki flashcards for revision.
+---
+
+## Keyboard Shortcuts
+
+NewtonPilot registers global Chrome hotkeys so you can operate without opening the popup:
+
+| Shortcut (macOS) | Shortcut (Windows/Linux) | Action | Scope |
+|---|---|---|---|
+| `Alt + Shift + S` | `Alt + Shift + S` | Step 1 Question (Extract &rarr; Reason &rarr; Click) | Global (on active portal tab) |
+| `Alt + Shift + P` | `Alt + Shift + P` | Toggle Auto-Pilot (Start / Pause) | Global (on active portal tab) |
+| `S` | `S` | Step 1 Question | Inside popup |
+| `P` | `P` | Start / Pause Auto-Pilot | Inside popup |
+| `I` | `I` | Inspect active question | Inside popup |
+| `1` / `2` / `3` | `1` / `2` / `3` | Switch between Question, Auto-Pilot, and JSON tabs | Inside popup |
+
+---
+
+## Running Automated Tests
+
+To verify that the DOM extractor, Ollama client, and autonomous agent state machine are functioning properly on your system:
+
+```bash
+cd newtonpilot
+npm test
+```
+
+Expected output:
+```text
+✓ Test 1: Single choice MCQ extraction passed
+✓ Test 2: Multi-choice checkbox extraction passed
+✓ Test 3: Newton School actual portal structure passed perfectly
+All extractor unit tests passed successfully!
+
+✓ Test 1: Default configuration passed
+✓ Test 2: Prompt structure generation passed
+✓ Test 3: Markdown JSON code-fence cleaning passed
+✓ Test 4: Explanation parsing and schema mapping passed
+✓ Test 5: Multimodal vision payload passed
+All OllamaProvider tests passed successfully!
+
+✓ Test 1: Completion detector logic passed
+✓ Test 2: Option element resolution passed
+✓ Test 3: Agent state machine transitions passed
+All Autonomous Agent tests passed successfully!
+```
+
+---
+
+## Troubleshooting
+
+### 1. Ollama Connection Error (`HTTP 403 Forbidden` or `Offline`)
+- Make sure Ollama is running in your terminal:
+  ```bash
+  OLLAMA_ORIGINS="*" ollama serve
+  ```
+- If the popup says "Checking..." or "Offline", click the **Refresh** button in the popup toolbar.
+- Note: NewtonPilot's Manifest V3 background service worker includes a dynamic Declarative Net Request header rewrite rule that rewrites the `Origin` header to `http://localhost`, circumventing browser CORS restrictions.
+
+### 2. "No Question Detected"
+- Confirm you are on an active quiz URL (`https://my.newtonschool.co/course/.../assessment/...`).
+- If the page just finished loading via React SPA routing, click **Inspect** (`⌥I`) to trigger extraction.
+
+### 3. Agent Clicks the Wrong Option
+- Smaller models (such as `1B` parameter models) can occasionally misread subtle Python slicing or recursion questions.
+- Switch the active model in the popup dropdown to `qwen2.5-coder:7b`, which is specifically fine-tuned for code evaluation and syntax accuracy.
+
+---
+
+## Directory Structure
+
+```text
+newtonpilot/
+├── manifest.json              # Chrome Manifest V3 configuration & commands
+├── popup/
+│   ├── popup.html             # UI container (Arthakram System B theme)
+│   ├── popup.css              # Custom styled paper palette tokens
+│   └── popup.js               # UI controller, hotkey listeners & Ollama sync
+├── scripts/
+│   ├── extractor.js           # Multi-tier DOM question extractor & image renderer
+│   ├── executor.js            # Synthetic event dispatcher & portal navigation
+│   ├── agent.js               # 9-step autonomous state machine loop
+│   ├── observer.js            # Debounced MutationObserver for React transitions
+│   └── content.js             # Content script coordinator & messaging bridge
+├── services/
+│   └── ollama-provider.js     # Multimodal Ollama API client & prompt builder
+├── background/
+│   └── service-worker.js      # DeclarativeNetRequest rules & hotkey forwarder
+├── utils/
+│   └── messaging.js           # Standardized Chrome runtime message schemas
+├── tests/
+│   ├── extractor.test.js      # Portal DOM extraction test suite
+│   ├── ollama-provider.test.js# Prompt generation & multimodal payload tests
+│   └── agent.test.js          # State transitions & executor test suite
+├── assets/
+│   └── icons/                 # Extension toolbar icons (16px, 48px, 128px)
+└── package.json
+```
+
+---
+
+## Disclaimer
+
+This project is created for educational study, practice assessments, and mock environment speedrunning where students are encouraged to exercise coding, browser automation, and problem-solving skills. Use responsibly and in accordance with your institution's guidelines.
+
+---
+
+<p align="center">
+  <sub>Made with care by <b>zeniqen</b> for <b>jagrati</b></sub>
+</p>

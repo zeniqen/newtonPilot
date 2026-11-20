@@ -31,6 +31,22 @@
     "service_worker": "background/service-worker.js",
     "type": "module"
   },
+  "commands": {
+    "step_question": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Step 1 Question (Extract -> Reason -> Click)"
+    },
+    "toggle_pilot": {
+      "suggested_key": {
+        "default": "Alt+Shift+P",
+        "mac": "Alt+Shift+P"
+      },
+      "description": "Start or Pause Auto-Pilot"
+    }
+  },
   "content_scripts": [
     {
       "matches": [
@@ -40,6 +56,8 @@
         "utils/messaging.js",
         "scripts/extractor.js",
         "scripts/observer.js",
+        "scripts/executor.js",
+        "scripts/agent.js",
         "scripts/content.js"
       ],
       "run_at": "document_idle"

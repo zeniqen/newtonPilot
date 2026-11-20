@@ -1,13 +1,17 @@
 {
-  "0": "NewtonPilot 🚀 — AI-Powered Chrome Extension",
+  "0": "NewtonPilot",
   "1": "manifest.json",
   "2": "package.json",
   "3": "action",
   "4": "popup.js",
-  "5": "extractor.test.js",
+  "5": "NewtonPilot",
   "6": "OllamaProvider",
+  "7": "agent.test.js",
   "8": "content.js",
   "9": "GEMINI.md",
   "10": "observer.js",
-  "11": "messaging.js"
+  "11": "messaging.js",
+  "12": "commands",
+  "13": "2. Operating Modes",
+  "14": "2. Operating Modes"
 }

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Chrome Extension (Manifest V3) for learning and reviewing practice MCQ quizzes on Newton School portal.",
   "scripts": {
-    "test": "node tests/extractor.test.js && node tests/ollama-provider.test.js"
+    "test": "node tests/extractor.test.js && node tests/ollama-provider.test.js && node tests/agent.test.js"
   },
   "keywords": [
     "chrome-extension",

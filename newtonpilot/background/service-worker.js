@@ -172,3 +172,30 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     console.log('[NewtonPilot] Newton portal tab loaded:', tab.url);
   }
 });
+
+// Global Keyboard Shortcut Command Listener
+if (chrome?.commands?.onCommand) {
+  chrome.commands.onCommand.addListener(async (command) => {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs || tabs.length === 0 || !tabs[0].id) return;
+      const activeTab = tabs[0];
+      if (!activeTab.url || !activeTab.url.startsWith('https://my.newtonschool.co')) return;
+
+      if (command === 'step_question') {
+        console.log('[NewtonPilot] Hotkey triggered: step_question');
+        chrome.tabs.sendMessage(activeTab.id, {
+          action: 'STEP_AUTONOMOUS_AGENT',
+          payload: { autoNavigate: false }
+        }).catch(err => console.warn('[NewtonPilot] Hotkey step failed:', err));
+      } else if (command === 'toggle_pilot') {
+        console.log('[NewtonPilot] Hotkey triggered: toggle_pilot');
+        chrome.tabs.sendMessage(activeTab.id, {
+          action: 'TOGGLE_AUTONOMOUS_AGENT'
+        }).catch(err => console.warn('[NewtonPilot] Hotkey toggle failed:', err));
+      }
+    } catch (err) {
+      console.warn('[NewtonPilot] Error handling hotkey command:', err);
+    }
+  });
+}

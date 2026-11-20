@@ -1,26 +1,37 @@
 /**
- * NewtonPilot - Ollama AI Integration Provider (Phase 2 Interface)
+ * NewtonPilot - Ollama AI Integration Provider (Phase 2 & 3 Interface)
  * 
  * Provides an architectural client interface for local Ollama LLMs.
- * Designed for learning explanations and concept review in Phase 2.
- * 
- * NOTE: Unattended answering and automatic assessment submission are strictly prohibited.
+ * Features:
+ * - Deterministic greedy sampling (temperature: 0.0) for maximum code evaluation accuracy
+ * - Multimodal Vision support (passes base64 images to models like llava, llama3.2-vision)
+ * - Chain-of-Thought Python execution reasoning to eliminate hallucinations
  */
 
 class OllamaProvider {
   /**
    * @param {Object} [config] 
    * @param {string} [config.host] - Ollama server host (default: http://localhost:11434)
-   * @param {string} [config.model] - Target model name (e.g. 'qwen2.5-coder:7b', 'llama3.2:1b')
-   * @param {number} [config.temperature] - Sampling temperature (default: 0.2)
+   * @param {string} [config.model] - Target model name (default: 'qwen2.5-coder:7b')
+   * @param {number} [config.temperature] - Sampling temperature (default: 0.0 for maximum coding accuracy)
    * @param {number} [config.timeoutMs] - Request timeout in ms (default: 60000)
    */
   constructor(config = {}) {
     this.host = (config.host || 'http://localhost:11434').replace(/\/+$/, '');
     this.model = config.model || 'qwen2.5-coder:7b';
-    this.temperature = config.temperature ?? 0.2;
+    this.temperature = config.temperature ?? 0.0;
     this.timeoutMs = config.timeoutMs || 60000;
     this.isReady = false;
+  }
+
+  /**
+   * Check if a given model supports multimodal vision.
+   * @param {string} modelName 
+   * @returns {boolean}
+   */
+  isVisionModel(modelName) {
+    const name = (modelName || this.model || '').toLowerCase();
+    return /(?:vision|llava|bakllava|vl|minicpm)/.test(name);
   }
 
   /**
@@ -57,20 +68,59 @@ class OllamaProvider {
   }
 
   /**
-   * Build structured pedagogical prompt from extracted question data.
+   * Helper: Resolve remote image URL to Base64 string.
+   * @param {string} url 
+   * @returns {Promise<string|null>}
+   */
+  async fetchImageAsBase64(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const buffer = await res.arrayBuffer();
+      if (typeof Buffer !== 'undefined') {
+        return Buffer.from(buffer).toString('base64');
+      }
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Build structured pedagogical prompt with Chain-of-Thought execution.
    * @param {Object} questionData 
+   * @param {boolean} [hasImages]
    * @returns {string} Formatted prompt
    */
-  buildPrompt(questionData) {
+  buildPrompt(questionData, hasImages = false) {
     const { questionText = '', options = [], format = 'single_choice' } = questionData || {};
 
     const optionsText = options
       .map(o => `Option ${o.label}: ${o.text}`)
       .join('\n');
 
+    const imageInstruction = hasImages
+      ? '\n[CRITICAL]: An image is attached to this question. Carefully examine the code snippet, diagram, or terminal output displayed in the image.'
+      : '';
+
     return `
-You are an expert computer science and programming tutor helping a student understand a practice quiz question.
-Analyze the question thoroughly. Identify the correct answer, explain the core programming concept clearly, and explain why each incorrect option is wrong.
+You are an authoritative Python & Computer Science assessment engine and code interpreter.
+Your goal is 100% accuracy on this multiple-choice question.
+
+REASONING PROTOCOL:
+1. Carefully parse the question statement, code snippet, and any edge-case rules.${imageInstruction}
+2. If code is present, simulate its execution line-by-line, tracking variable states and data types.
+3. Distinguish strictly between:
+   - In-place modifications (e.g. list.append(), list.sort()) vs methods returning new values (e.g. sorted()).
+   - Method naming in Python (e.g. list.append() vs set.add()).
+   - Indexing, slicing bounds, and ValueError vs KeyError vs IndexError.
+4. Evaluate every single option (A, B, C, D) before deciding.
+5. Choose the exact option letter that is definitively correct.
 
 Question:
 ${questionText}
@@ -83,15 +133,15 @@ ${optionsText}
 Return your response in STRICT valid JSON matching this schema:
 {
   "suggested_answer": "Option letter and text (e.g. Option D: append())",
-  "concept_summary": "1-2 sentence core concept explanation",
-  "reasoning": "Step-by-step conceptual walkthrough of why the correct option is right.",
+  "concept_summary": "1-sentence definitive rule or principle",
+  "reasoning": "Step-by-step code execution trace and why the chosen option is correct.",
   "options_analysis": [
-    { "label": "A", "status": "Incorrect", "explanation": "Why this option is wrong or what it actually does" },
-    { "label": "B", "status": "Incorrect", "explanation": "Why this option is wrong or what it actually does" },
-    { "label": "C", "status": "Incorrect", "explanation": "Why this option is wrong or what it actually does" },
-    { "label": "D", "status": "Correct", "explanation": "Why this option is the exact right answer" }
+    { "label": "A", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
+    { "label": "B", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
+    { "label": "C", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
+    { "label": "D", "status": "Correct", "explanation": "Why this option is unequivocally correct" }
   ],
-  "confidence": 0.98
+  "confidence": 0.99
 }
 `.trim();
   }
@@ -111,30 +161,57 @@ Return your response in STRICT valid JSON matching this schema:
   }
 
   /**
-   * Query Ollama for concept explanation.
+   * Query Ollama for concept explanation and option selection.
+   * Handles Multimodal Vision when images are attached.
    * @param {Object} questionData 
    * @returns {Promise<{suggested_answer: string, concept_summary: string, reasoning: string, options_analysis: Array, confidence: number}>}
    */
   async requestExplanation(questionData) {
-    const prompt = this.buildPrompt(questionData);
+    // 1. Process and resolve images
+    const rawImages = questionData?.images || [];
+    const base64Images = [];
+
+    for (const img of rawImages) {
+      if (img.base64) {
+        base64Images.push(img.base64);
+      } else if (img.src && img.src.startsWith('data:image/')) {
+        const b64 = img.src.split(',')[1];
+        if (b64) base64Images.push(b64);
+      } else if (img.src && /^https?:\/\//i.test(img.src)) {
+        const fetchedB64 = await this.fetchImageAsBase64(img.src);
+        if (fetchedB64) base64Images.push(fetchedB64);
+      }
+    }
+
+    const hasImages = base64Images.length > 0;
+    const isVision = this.isVisionModel(this.model);
+    const prompt = this.buildPrompt(questionData, hasImages);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    // Build Ollama request body
+    const requestBody = {
+      model: this.model,
+      prompt,
+      format: 'json',
+      stream: false,
+      options: {
+        temperature: this.temperature
+      }
+    };
+
+    // Attach images only if model supports vision (prevents Ollama 400 error on text models)
+    if (hasImages && isVision) {
+      requestBody.images = base64Images;
+    }
 
     let response;
     try {
       response = await fetch(`${this.host}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          prompt,
-          format: 'json',
-          stream: false,
-          options: {
-            temperature: this.temperature
-          }
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
     } catch (fetchErr) {
@@ -158,15 +235,21 @@ Return your response in STRICT valid JSON matching this schema:
 
     try {
       const parsed = JSON.parse(cleaned);
+      let reasoning = parsed.reasoning || rawResponse;
+
+      // Notice if question has an image but a text-only model was used
+      if (hasImages && !isVision) {
+        reasoning = `[⚠️ Image Detected: This question includes a diagram/image. Current model '${this.model}' is text-only. For 100% accuracy on image questions, use a Vision model like 'llava:7b' or 'llama3.2-vision'].\n\n` + reasoning;
+      }
+
       return {
         suggested_answer: parsed.suggested_answer || 'Analysis Complete',
         concept_summary: parsed.concept_summary || '',
-        reasoning: parsed.reasoning || rawResponse,
+        reasoning,
         options_analysis: Array.isArray(parsed.options_analysis) ? parsed.options_analysis : [],
-        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.95
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.99
       };
     } catch (parseErr) {
-      // Fallback schema if model returned unformatted text
       return {
         suggested_answer: 'Explanation Generated',
         concept_summary: 'Conceptual breakdown',

@@ -113,6 +113,67 @@
           break;
         }
 
+        // Autonomous Agent Controls
+        case NewtonMessaging.ACTIONS.START_AUTONOMOUS_AGENT: {
+          if (window.NewtonAgent) {
+            const status = window.NewtonAgent.start(request.payload || {});
+            sendResponse({ success: true, status });
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
+        case NewtonMessaging.ACTIONS.PAUSE_AUTONOMOUS_AGENT: {
+          if (window.NewtonAgent) {
+            const status = window.NewtonAgent.pause();
+            sendResponse({ success: true, status });
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
+        case NewtonMessaging.ACTIONS.TOGGLE_AUTONOMOUS_AGENT: {
+          if (window.NewtonAgent) {
+            const status = window.NewtonAgent.toggle(request.payload || {});
+            sendResponse({ success: true, status });
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
+        case NewtonMessaging.ACTIONS.STOP_AUTONOMOUS_AGENT: {
+          if (window.NewtonAgent) {
+            const status = window.NewtonAgent.stop();
+            sendResponse({ success: true, status });
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
+        case NewtonMessaging.ACTIONS.STEP_AUTONOMOUS_AGENT: {
+          if (window.NewtonAgent) {
+            window.NewtonAgent.step(request.payload || {})
+              .then(status => sendResponse({ success: true, status }))
+              .catch(err => sendResponse({ success: false, error: err.message }));
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
+        case NewtonMessaging.ACTIONS.GET_AGENT_STATUS: {
+          if (window.NewtonAgent) {
+            sendResponse({ success: true, status: window.NewtonAgent.getStatus() });
+          } else {
+            sendResponse({ success: false, error: 'NewtonAgent module not loaded' });
+          }
+          break;
+        }
+
         default:
           sendResponse({ success: false, error: `Unhandled action: ${action}` });
           break;

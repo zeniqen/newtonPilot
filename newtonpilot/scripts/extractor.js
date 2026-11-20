@@ -224,17 +224,39 @@ const NewtonExtractor = (() => {
     let text = '';
     const images = [];
 
+    function registerImage(img) {
+      if (img && img.src && isVisible(img) && !images.some(i => i.src === img.src)) {
+        let b64 = null;
+        if (img.src.startsWith('data:image/')) {
+          b64 = img.src.split(',')[1] || null;
+        } else {
+          try {
+            if (typeof document !== 'undefined') {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth || img.width || 400;
+              canvas.height = img.naturalHeight || img.height || 200;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL('image/png');
+              b64 = dataUrl.split(',')[1] || null;
+            }
+          } catch (e) {
+            b64 = null;
+          }
+        }
+
+        images.push({
+          src: img.src,
+          alt: img.alt || 'Question illustration',
+          base64: b64
+        });
+      }
+    }
+
     if (questionEl) {
       text = cleanText(questionEl.innerText || questionEl.textContent);
       // Collect images in question body
-      questionEl.querySelectorAll('img').forEach(img => {
-        if (img.src && isVisible(img)) {
-          images.push({
-            src: img.src,
-            alt: img.alt || 'Question illustration'
-          });
-        }
-      });
+      questionEl.querySelectorAll('img').forEach(registerImage);
     } else {
       // Fallback: look for paragraphs before options container
       const paragraphs = Array.from(container.querySelectorAll('p, div'))
@@ -245,6 +267,9 @@ const NewtonExtractor = (() => {
         text = cleanText(paragraphs[0].innerText);
       }
     }
+
+    // Also collect any diagrams/code screenshots in the parent container
+    container.querySelectorAll('img').forEach(registerImage);
 
     text = cleanQuestionStatement(text);
 
@@ -298,6 +323,14 @@ const NewtonExtractor = (() => {
         const defaultLetter = String.fromCharCode(65 + index); // A, B, C, D...
         const parsedLabel = parseOptionLabel(labelText, defaultLetter);
 
+        // Tag option element for rapid autonomous execution
+        if (typeof input.setAttribute === 'function') {
+          input.setAttribute('data-newton-option', parsedLabel.label);
+        }
+        if (labelEl && typeof labelEl.setAttribute === 'function') {
+          labelEl.setAttribute('data-newton-option', parsedLabel.label);
+        }
+
         optionCandidates.push({
           id: input.value || `${input.id || 'opt'}-${index}`,
           label: parsedLabel.label,
@@ -328,6 +361,10 @@ const NewtonExtractor = (() => {
         const rawText = cleanText(el.innerText || el.textContent);
         const defaultLetter = String.fromCharCode(65 + index);
         const parsedLabel = parseOptionLabel(rawText, defaultLetter);
+
+        if (typeof el.setAttribute === 'function') {
+          el.setAttribute('data-newton-option', parsedLabel.label);
+        }
 
         optionCandidates.push({
           id: el.id || `aria-opt-${index}`,
@@ -370,6 +407,10 @@ const NewtonExtractor = (() => {
           const rawText = cleanText(el.innerText || el.textContent);
           const defaultLetter = String.fromCharCode(65 + index);
           const parsedLabel = parseOptionLabel(rawText, defaultLetter);
+
+          if (typeof el.setAttribute === 'function') {
+            el.setAttribute('data-newton-option', parsedLabel.label);
+          }
 
           optionCandidates.push({
             id: el.id || `custom-opt-${index}`,
