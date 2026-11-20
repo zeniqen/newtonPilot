@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'single_choice': return 'Single Choice';
       case 'multi_choice': return 'Multi-Select';
       case 'true_false': return 'True / False';
+      case 'unknown': return 'Direct Input';
       default: return 'Practice MCQ';
     }
   }
@@ -402,10 +403,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? `Q${data.questionNumber}${data.totalQuestions ? ` of ${data.totalQuestions}` : ''}`
       : (data.questionProgressText || 'Active');
     questionNumBadge.textContent = qNumText;
-    formatBadge.textContent = formatTypeName(data.format);
-
     const isShortAnswer = data.format === 'short_answer' || data.hasTextInput || (!data.options || data.options.length === 0);
-    optionsCountBadge.textContent = isShortAnswer ? 'Text Field' : `${data.optionsCount || (data.options || []).length} Options`;
+    formatBadge.textContent = isShortAnswer ? 'Short Answer' : formatTypeName(data.format);
+    optionsCountBadge.textContent = isShortAnswer ? 'Text Input' : `${data.optionsCount || (data.options || []).length} Options`;
 
     // Statement & Timestamp
     questionStatement.textContent = data.questionText || '(No question text detected)';

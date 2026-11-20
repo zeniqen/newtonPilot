@@ -194,10 +194,28 @@ const NewtonAgent = (() => {
     }
 
     // 3B. Standard MCQ Option Question
+    let targetLetter = null;
     const match = suggested.match(/\b([A-D])\b/i);
-    const targetLetter = match ? match[1].toUpperCase() : null;
+    if (match) targetLetter = match[1].toUpperCase();
 
-    log(`AI Decided: ${suggested} (${confidence}% confidence)`, 'success');
+    // Cross-verify against options_analysis to eliminate answer hallucination discrepancies
+    if (Array.isArray(explanation.options_analysis)) {
+      const correctEntries = explanation.options_analysis.filter(o => {
+        const s = String(o.status || '').trim().toLowerCase();
+        return s === 'correct' || s === 'true';
+      });
+      if (correctEntries.length === 1) {
+        const verifiedLetter = String(correctEntries[0].label || '').trim().toUpperCase();
+        if (verifiedLetter && targetLetter && targetLetter !== verifiedLetter) {
+          log(`Notice: Reconciled answer (Model suggested ${targetLetter}, but walkthrough analysis verified ${verifiedLetter})`, 'warning');
+          targetLetter = verifiedLetter;
+        } else if (!targetLetter && verifiedLetter) {
+          targetLetter = verifiedLetter;
+        }
+      }
+    }
+
+    log(`AI Decided: Option ${targetLetter || suggested} (${confidence}% confidence)`, 'success');
 
     if (!targetLetter) {
       log(`Could not identify option letter from: "${suggested}"`, 'error');

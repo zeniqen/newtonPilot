@@ -163,7 +163,26 @@ const NewtonExtractor = (() => {
 
     for (const sel of primarySelectors) {
       const el = document.querySelector(sel);
-      if (el && isVisible(el)) return el;
+      if (el && isVisible(el)) {
+        // Ensure container isn't just an isolated title/header when inputs or options exist outside it
+        const hasInteractive = Boolean(el.querySelector('input, textarea, [role="radio"], [class*="option" i]'));
+        if (!hasInteractive && typeof document !== 'undefined') {
+          const globalInteractive = document.querySelector('input[placeholder*="answer" i], [role="radio"], [role="radiogroup"], [class*="option" i]');
+          if (globalInteractive && el.parentElement) {
+            let parent = el.parentElement;
+            for (let i = 0; i < 4 && parent && parent !== document.body; i++) {
+              const containsTarget = typeof parent.contains === 'function'
+                ? parent.contains(globalInteractive)
+                : Boolean(parent.querySelector && parent.querySelector('input, [class*="option" i]'));
+              if (containsTarget) {
+                return parent;
+              }
+              parent = parent.parentElement;
+            }
+          }
+        }
+        return el;
+      }
     }
 
     // Priority Tier 2: Container of radio/checkbox options
@@ -457,11 +476,12 @@ const NewtonExtractor = (() => {
 
   /**
    * Helper: Detect text input field for short answer / output prediction / fill-in questions.
+   * Checks container first, and falls back to whole document if not found in container.
    * @param {Element} container 
    * @returns {{hasInput: boolean, placeholder: string|null, value: string|null, type?: string}}
    */
   function detectTextInput(container = document) {
-    if (!container) return { hasInput: false, placeholder: null, value: null };
+    const root = container || document;
 
     const selectors = [
       'input[placeholder*="answer" i]',
@@ -472,28 +492,42 @@ const NewtonExtractor = (() => {
       '[contenteditable="true"]'
     ];
 
-    for (const sel of selectors) {
-      const candidates = Array.from(container.querySelectorAll(sel)).filter(isVisible);
-      const inputEl = candidates.find(el => {
-        const ph = (el.getAttribute('placeholder') || '').toLowerCase();
-        const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
-        const name = (el.getAttribute('name') || '').toLowerCase();
-        // Ignore search/filter inputs
-        if (ph.includes('search') || ariaLabel.includes('search') || name.includes('search')) return false;
-        return true;
-      });
-
-      if (inputEl) {
-        if (typeof inputEl.setAttribute === 'function') {
-          inputEl.setAttribute('data-newton-input', 'true');
-        }
-        return {
-          hasInput: true,
-          placeholder: inputEl.getAttribute('placeholder') || 'Enter your answer here',
-          value: inputEl.value || (inputEl.isContentEditable ? inputEl.innerText : '') || '',
-          type: inputEl.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text'
-        };
+    function searchIn(scope) {
+      if (!scope || typeof scope.querySelectorAll !== 'function') return null;
+      for (const sel of selectors) {
+        const candidates = Array.from(scope.querySelectorAll(sel)).filter(isVisible);
+        const match = candidates.find(el => {
+          const type = (el.type || el.getAttribute('type') || '').toLowerCase();
+          if (type === 'radio' || type === 'checkbox' || type === 'button' || type === 'submit' || type === 'hidden') {
+            return false;
+          }
+          const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+          const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+          const name = (el.getAttribute('name') || '').toLowerCase();
+          if (ph.includes('search') || ariaLabel.includes('search') || name.includes('search')) return false;
+          return true;
+        });
+        if (match) return match;
       }
+      return null;
+    }
+
+    let inputEl = searchIn(root);
+    // Fallback: If not found in container, check whole document
+    if (!inputEl && root !== document && typeof document !== 'undefined') {
+      inputEl = searchIn(document);
+    }
+
+    if (inputEl) {
+      if (typeof inputEl.setAttribute === 'function') {
+        inputEl.setAttribute('data-newton-input', 'true');
+      }
+      return {
+        hasInput: true,
+        placeholder: inputEl.getAttribute('placeholder') || 'Enter your answer here',
+        value: inputEl.value || (inputEl.isContentEditable ? inputEl.innerText : '') || '',
+        type: inputEl.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text'
+      };
     }
 
     return { hasInput: false, placeholder: null, value: null };
@@ -506,28 +540,28 @@ const NewtonExtractor = (() => {
    * @returns {'single_choice'|'multi_choice'|'true_false'|'short_answer'|'unknown'}
    */
   function determineFormat(options, textInputInfo = {}) {
-    if (textInputInfo && textInputInfo.hasInput && (!options || options.length === 0)) {
-      return 'short_answer';
-    }
+    const hasOptions = Array.isArray(options) && options.length > 0;
 
-    if (!options || options.length === 0) {
-      return textInputInfo && textInputInfo.hasInput ? 'short_answer' : 'unknown';
-    }
+    // If options are present, question is an MCQ/Choice question
+    if (hasOptions) {
+      const hasCheckbox = options.some(opt => opt.type === 'checkbox' || opt.role === 'checkbox');
+      if (hasCheckbox) return 'multi_choice';
 
-    const hasCheckbox = options.some(opt => opt.type === 'checkbox' || opt.role === 'checkbox');
-    if (hasCheckbox) return 'multi_choice';
-
-    if (options.length === 2) {
-      const texts = options.map(o => o.text.toLowerCase());
-      if (
-        (texts.includes('true') && texts.includes('false')) ||
-        (texts.includes('yes') && texts.includes('no'))
-      ) {
-        return 'true_false';
+      if (options.length === 2) {
+        const texts = options.map(o => (o.text || '').toLowerCase());
+        if (
+          (texts.includes('true') && texts.includes('false')) ||
+          (texts.includes('yes') && texts.includes('no'))
+        ) {
+          return 'true_false';
+        }
       }
+
+      return 'single_choice';
     }
 
-    return 'single_choice';
+    // No options present -> Short Answer / Direct Input
+    return 'short_answer';
   }
 
   /**

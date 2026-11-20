@@ -18,7 +18,7 @@ async function runTests() {
     console.log('✓ Test 1: Default configuration passed');
   }
 
-  // Test 2: buildPrompt produces structured output
+  // Test 2: buildPrompt produces structured output with Chain-of-Thought scratchpad first
   {
     const provider = new OllamaProvider({ model: 'qwen2.5-coder:7b' });
     const mockQuestion = {
@@ -36,12 +36,17 @@ async function runTests() {
     assert.ok(prompt.includes('Which method adds an element only to the end of a list?'));
     assert.ok(prompt.includes('Option A: extend()'));
     assert.ok(prompt.includes('Option D: append()'));
-    assert.ok(prompt.includes('suggested_answer'));
+    assert.ok(prompt.includes('code_execution_trace'));
     assert.ok(prompt.includes('options_analysis'));
-    console.log('✓ Test 2: Prompt structure generation passed');
+    assert.ok(prompt.includes('suggested_answer'));
+
+    const traceIdx = prompt.lastIndexOf('code_execution_trace');
+    const answerIdx = prompt.lastIndexOf('suggested_answer');
+    assert.ok(traceIdx < answerIdx, 'code_execution_trace must precede suggested_answer in schema');
+    console.log('✓ Test 2: Prompt structure generation with inverted CoT schema passed');
   }
 
-  // Test 3: cleanJsonResponse strips code fences
+  // Test 3: cleanJsonResponse strips code fences and extracts JSON
   {
     const provider = new OllamaProvider();
     const rawFenced = '```json\n{"suggested_answer":"Option D"}\n```';
@@ -50,7 +55,10 @@ async function runTests() {
 
     const bare = '{"suggested_answer":"Option D"}';
     assert.strictEqual(provider.cleanJsonResponse(bare), bare);
-    console.log('✓ Test 3: Markdown JSON code-fence cleaning passed');
+
+    const surrounded = 'Here is the answer:\n```json\n{"suggested_answer":"Option D"}\n```\nHope that helps!';
+    assert.strictEqual(provider.cleanJsonResponse(surrounded), '{"suggested_answer":"Option D"}');
+    console.log('✓ Test 3: Markdown JSON code-fence and surrounded text cleaning passed');
   }
 
   // Test 4: Mocked requestExplanation parses schema
@@ -157,7 +165,68 @@ async function runTests() {
     assert.ok(prompt.includes('What will be the output of fun(5)?'));
     assert.ok(prompt.includes('type the EXACT answer directly into an input field'));
     assert.ok(!prompt.includes('Option A:'));
+    assert.ok(prompt.includes('code_execution_trace'));
+
+    const traceIdx = prompt.lastIndexOf('code_execution_trace');
+    const answerIdx = prompt.lastIndexOf('suggested_answer');
+    assert.ok(traceIdx < answerIdx, 'code_execution_trace must precede suggested_answer in short answer prompt');
     console.log('✓ Test 6: Short answer prompt generation passed');
+  }
+
+  // Test 7: Reconciles MCQ mismatch between options_analysis and suggested_answer
+  {
+    const provider = new OllamaProvider();
+    const mockQuestion = {
+      questionText: 'Which method adds an element only to the end of a list?',
+      options: [
+        { label: 'A', text: 'extend()' },
+        { label: 'B', text: 'add()' },
+        { label: 'C', text: 'insert()' },
+        { label: 'D', text: 'append()' }
+      ]
+    };
+
+    // Simulate model hallucinating "Option A" in suggested_answer despite proving Option D in analysis
+    const parsedWithHallucination = {
+      suggested_answer: 'Option A: extend()',
+      code_execution_trace: 'list.append(x) places x at index len(list). list.extend(iter) unpacks iterable.',
+      reasoning: 'append() is specifically designed to add one element to the end.',
+      options_analysis: [
+        { label: 'A', status: 'Incorrect', explanation: 'extend unpacks an iterable' },
+        { label: 'B', status: 'Incorrect', explanation: 'add is for sets' },
+        { label: 'C', status: 'Incorrect', explanation: 'insert adds at arbitrary index' },
+        { label: 'D', status: 'Correct', explanation: 'append places an item at the end' }
+      ],
+      confidence: 0.99
+    };
+
+    const reconciled = provider.reconcileExplanation(parsedWithHallucination, mockQuestion);
+    assert.strictEqual(reconciled.suggested_answer, 'Option D: append()');
+    console.log('✓ Test 7: MCQ discrepancy reconciliation passed (Option A overridden with Option D)');
+  }
+
+  // Test 8: Reconciles Short Answer space artifact and prefix
+  {
+    const provider = new OllamaProvider();
+    const mockQuestion = {
+      questionText: "def fun(n):\n    if n == 0: return\n    fun(n // 2)\n    print(n % 2, end='')\nfun(5)",
+      format: 'short_answer',
+      options: [],
+      hasTextInput: true
+    };
+
+    // Simulate model outputting "Option D: 1 0 1" with spaces when end='' produced "101"
+    const parsedWithSpaces = {
+      suggested_answer: 'Option D: 1 0 1',
+      code_execution_trace: "fun(5)->fun(2)->fun(1)->fun(0). Unwinding: fun(1) prints '1', fun(2) prints '0', fun(5) prints '1'. Stdout buffer: '101'.",
+      reasoning: 'Unwinds printing 1, 0, 1 in order. Output is 101.',
+      options_analysis: [],
+      confidence: 0.99
+    };
+
+    const reconciled = provider.reconcileExplanation(parsedWithSpaces, mockQuestion);
+    assert.strictEqual(reconciled.suggested_answer, '101', 'Should strip Option D prefix and space artifacts');
+    console.log('✓ Test 8: Short answer space artifact and prefix reconciliation passed');
   }
 
   console.log('\nAll OllamaProvider tests passed successfully!');

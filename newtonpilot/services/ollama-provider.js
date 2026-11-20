@@ -93,6 +93,8 @@ class OllamaProvider {
 
   /**
    * Build structured pedagogical prompt with Chain-of-Thought execution.
+   * Ensures the execution trace and option analysis precede the final suggested answer
+   * so the autoregressive model derives the answer from step-by-step reasoning.
    * @param {Object} questionData 
    * @param {boolean} [hasImages]
    * @returns {string} Formatted prompt
@@ -113,10 +115,21 @@ Your goal is 100% accuracy on this Short Answer / Output Prediction / Fill-in-th
 
 CRITICAL INSTRUCTIONS FOR SHORT ANSWER:
 1. This question does NOT have options (A, B, C, D). The student must type the EXACT answer directly into an input field.
-2. Provide ONLY the concise, exact string or number that must be entered into the answer box in "suggested_answer".
-   - Examples of valid "suggested_answer": "101", "True", "append", "3", "Hello"
-   - Do NOT output "Option A", "Option D", or "The output is 101". Output ONLY the exact value.
-3. Simulate the code line-by-line. Pay strict attention to recursion stack unwind, print end parameters (e.g. end=''), and type representations.${imageInstruction}
+2. In "suggested_answer", provide ONLY the raw, exact value to type into the answer box.
+   - Output ONLY the literal value: e.g. "101", "True", "False", "append", "3", "Hello"
+   - Do NOT prepend "Option A", "Option D", "Answer:", or "Output:".
+   - Do NOT wrap in quotes or backticks.
+3. PYTHON CODE SIMULATION RULES (Mandatory Scratchpad Execution):
+   - RECURSION: Track call frames on the stack. Note code executed before recursive call (descent) vs after recursive call (unwind / LIFO return order).
+   - STDOUT BUFFER TRACKING: Track every character printed to stdout.
+     * print(..., end='') suppresses trailing newline and inserts NO space. Subsequent prints concatenate directly (e.g. printing 1 then 0 then 1 produces EXACTLY "101", NOT "1 0 1").
+     * print(a, b) separates arguments with a single space ' '.
+     * print() without end adds a newline '\\n'.
+     * NEVER add spaces between characters in the answer unless end=' ' was explicitly specified in the code.
+   - MUTABILITY: Track in-place modifications (e.g. list.append() returns None) vs returning new values.
+4. CHAIN-OF-THOUGHT SCHEMA:
+   - You MUST compute "code_execution_trace" FIRST before concluding the answer.
+   - "suggested_answer" MUST be the final field in your response.${imageInstruction}
 
 Question:
 ${questionText}
@@ -125,11 +138,12 @@ Format: Short Answer / Text Input
 
 Return your response in STRICT valid JSON matching this schema:
 {
-  "suggested_answer": "Exact answer to type into input field (e.g. 101 or True or append)",
-  "concept_summary": "1-sentence definitive rule or principle",
-  "reasoning": "Step-by-step code execution trace and walkthrough.",
+  "code_execution_trace": "Mandatory line-by-line simulation scratchpad: call stack, variable values after each step, and exact characters added to stdout buffer.",
+  "reasoning": "Concise walkthrough explaining why this exact value is produced.",
+  "concept_summary": "1-sentence core principle or rule.",
   "options_analysis": [],
-  "confidence": 0.99
+  "confidence": 0.99,
+  "suggested_answer": "Exact literal string/number to type into the input field (e.g. 101)"
 }
 `.trim();
     }
@@ -142,15 +156,24 @@ Return your response in STRICT valid JSON matching this schema:
 You are an authoritative Python & Computer Science assessment engine and code interpreter.
 Your goal is 100% accuracy on this multiple-choice question.
 
-REASONING PROTOCOL:
-1. Carefully parse the question statement, code snippet, and any edge-case rules.${imageInstruction}
-2. If code is present, simulate its execution line-by-line, tracking variable states and data types.
-3. Distinguish strictly between:
-   - In-place modifications (e.g. list.append(), list.sort()) vs methods returning new values (e.g. sorted()).
-   - Method naming in Python (e.g. list.append() vs set.add()).
-   - Indexing, slicing bounds, and ValueError vs KeyError vs IndexError.
-4. Evaluate every single option (A, B, C, D) before deciding.
-5. Choose the exact option letter that is definitively correct.
+REASONING PROTOCOL (Chain-of-Thought Scratchpad First):
+1. STEP 1 - CODE SIMULATION & VERIFICATION (in "code_execution_trace"):
+   - If code is present, simulate its execution line-by-line before selecting an answer.
+   - Track variable states, loop indices, and recursion stack frames in a mental state table.
+   - Distinguish strictly between:
+     * In-place modifications (e.g. list.append(), list.sort()) returning None vs functions returning new values (e.g. sorted()).
+     * Method naming in Python (e.g. list uses .append(), set uses .add()).
+     * Recursion unwind order (statements after the recursive call execute in reverse / LIFO order).
+     * Indexing & slicing bounds (stop index is non-inclusive; negative steps reverse direction).
+     * Truthiness (e.g. bool([0]) is True).
+     * Exact exception types (ValueError vs KeyError vs IndexError vs TypeError).
+2. STEP 2 - OPTIONS EVALUATION (in "options_analysis"):
+   - Compare the output or theoretical fact derived in Step 1 against EVERY single option (A, B, C, D).
+   - Designate status as either "Correct" or "Incorrect" with a concrete explanation for each.
+   - Exactly ONE option must be designated "Correct" (for single choice).
+3. STEP 3 - FINAL CONCLUSION (in "suggested_answer"):
+   - Select the exact option letter (A, B, C, or D) that matches the option proven Correct in Step 2.
+   - You MUST place "suggested_answer" at the VERY END of the JSON object, so it is emitted only after reasoning and options analysis are completed.${imageInstruction}
 
 Question:
 ${questionText}
@@ -162,32 +185,148 @@ ${optionsText}
 
 Return your response in STRICT valid JSON matching this schema:
 {
-  "suggested_answer": "Option letter and text (e.g. Option D: append())",
-  "concept_summary": "1-sentence definitive rule or principle",
-  "reasoning": "Step-by-step code execution trace and why the chosen option is correct.",
+  "code_execution_trace": "Step-by-step state simulation: variable table, stack frames, loop boundaries, stdout accumulation, or theoretical proof.",
   "options_analysis": [
     { "label": "A", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
     { "label": "B", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
     { "label": "C", "status": "Incorrect", "explanation": "Why this option is wrong or what it does instead" },
     { "label": "D", "status": "Correct", "explanation": "Why this option is unequivocally correct" }
   ],
-  "confidence": 0.99
+  "reasoning": "Synthesis explaining why the selected option is definitively correct based on the trace.",
+  "concept_summary": "1-sentence definitive rule or principle.",
+  "confidence": 0.99,
+  "suggested_answer": "Option letter and text (e.g. Option D: append())"
 }
 `.trim();
   }
 
   /**
-   * Clean JSON string by stripping markdown code fences if present.
+   * Clean JSON string by stripping markdown code fences or extracting outermost JSON object.
    * @param {string} text 
    * @returns {string}
    */
   cleanJsonResponse(text) {
     if (!text || typeof text !== 'string') return '';
     let cleaned = text.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+    // 1. Extract markdown JSON code block if present
+    const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenceMatch) {
+      return fenceMatch[1].trim();
     }
+
+    // 2. Fallback: extract outermost curly braces
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      return cleaned.slice(firstBrace, lastBrace + 1).trim();
+    }
+
     return cleaned;
+  }
+
+  /**
+   * Reconcile discrepancies between suggested_answer, options_analysis, and reasoning.
+   * Fixes the common autoregressive flaw where the AI reasons correctly in its walkthrough
+   * but outputs the wrong option token in suggested_answer.
+   * @param {Object} parsed
+   * @param {Object} questionData
+   * @returns {{suggested_answer: string, concept_summary: string, reasoning: string, options_analysis: Array, confidence: number}}
+   */
+  reconcileExplanation(parsed, questionData) {
+    let suggestedAnswer = String(parsed?.suggested_answer || '').trim();
+    const conceptSummary = String(parsed?.concept_summary || '').trim();
+    let reasoning = String(parsed?.reasoning || '').trim();
+    const trace = String(parsed?.code_execution_trace || '').trim();
+    const optionsAnalysis = Array.isArray(parsed?.options_analysis) ? parsed.options_analysis : [];
+    const isShortAnswer = questionData?.format === 'short_answer' ||
+                          questionData?.hasTextInput ||
+                          (!questionData?.options || questionData?.options.length === 0);
+
+    // Enrich reasoning with execution trace if available
+    if (trace && !reasoning.includes(trace)) {
+      reasoning = `${trace}\n\n${reasoning}`.trim();
+    }
+
+    // --- CASE 1: Short Answer Questions ---
+    if (isShortAnswer) {
+      let cleanAnswer = suggestedAnswer;
+      // Strip "Option A:", "Answer:", "Output:" prefixes
+      cleanAnswer = cleanAnswer.replace(/^Option\s+[A-D][:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^(?:Answer|Output|Result)[:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^["'`]|["'`]$/g, '').trim();
+
+      // Check for Python end='' spacing artifact (e.g. model output "1 0 1" instead of "101")
+      const codeText = questionData?.questionText || '';
+      const hasEndNoSpace = /end\s*=\s*['"]{2}/.test(codeText);
+      if (hasEndNoSpace && /^\d(\s+\d)+$/.test(cleanAnswer)) {
+        const compact = cleanAnswer.replace(/\s+/g, '');
+        if (trace.includes(compact) || reasoning.includes(compact) || !trace.includes(cleanAnswer)) {
+          cleanAnswer = compact;
+        }
+      }
+
+      // If answer is empty or just a stray option letter like "D", extract output from trace or reasoning
+      if (!cleanAnswer || /^[A-D]$/i.test(cleanAnswer)) {
+        const outputMatch = reasoning.match(/(?:output\s+(?:is|will\s+be|prints?)|prints?)\s*[:\-]?\s*['"`]?([a-zA-Z0-9_\-]+)['"`]?/i) ||
+                            trace.match(/(?:stdout|output)\s*(?:buffer)?\s*[:\-]?\s*['"`]?([a-zA-Z0-9_\-]+)['"`]?/i);
+        if (outputMatch && outputMatch[1]) {
+          cleanAnswer = outputMatch[1];
+        }
+      }
+
+      return {
+        suggested_answer: cleanAnswer || '1',
+        concept_summary: conceptSummary,
+        reasoning,
+        options_analysis: optionsAnalysis,
+        confidence: typeof parsed?.confidence === 'number' ? parsed.confidence : 0.99
+      };
+    }
+
+    // --- CASE 2: Multiple Choice Questions (MCQ) ---
+    const letterMatch = suggestedAnswer.match(/\b([A-D])\b/i);
+    const suggestedLetter = letterMatch ? letterMatch[1].toUpperCase() : null;
+
+    // Check options_analysis for the option proven to be Correct
+    const correctOptions = optionsAnalysis.filter(opt => {
+      const status = String(opt.status || '').trim().toLowerCase();
+      return status === 'correct' || status === 'true';
+    });
+
+    if (correctOptions.length === 1) {
+      const verifiedLetter = String(correctOptions[0].label || '').trim().toUpperCase();
+
+      // Discrepancy detected: options_analysis explicitly proved a different letter than suggested_answer
+      if (verifiedLetter && suggestedLetter && suggestedLetter !== verifiedLetter) {
+        console.warn(`[OllamaProvider] Reconciled answer discrepancy: options_analysis marked Option ${verifiedLetter} as Correct, overriding suggested_answer Option ${suggestedLetter}.`);
+        const matchedOpt = (questionData.options || []).find(o => o.label.toUpperCase() === verifiedLetter);
+        const optText = matchedOpt ? matchedOpt.text : (correctOptions[0].explanation || '');
+        suggestedAnswer = `Option ${verifiedLetter}: ${optText}`.trim();
+      } else if (!suggestedLetter && verifiedLetter) {
+        const matchedOpt = (questionData.options || []).find(o => o.label.toUpperCase() === verifiedLetter);
+        const optText = matchedOpt ? matchedOpt.text : '';
+        suggestedAnswer = `Option ${verifiedLetter}: ${optText}`.trim();
+      }
+    } else if (correctOptions.length === 0 && (!suggestedLetter || suggestedLetter.length === 0)) {
+      // Fallback: Check reasoning text for explicit option conclusion
+      const reasoningMatch = reasoning.match(/(?:Option|Choice)\s*([A-D])\s*(?:is\s+correct|is\s+the\s+right\s+answer|is\s+the\s+answer)/i) ||
+                             reasoning.match(/(?:correct\s+(?:option|choice|answer)\s+is)\s*[:\-]?\s*(?:Option\s*)?([A-D])\b/i);
+      if (reasoningMatch && reasoningMatch[1]) {
+        const inferredLetter = reasoningMatch[1].toUpperCase();
+        const matchedOpt = (questionData.options || []).find(o => o.label.toUpperCase() === inferredLetter);
+        const optText = matchedOpt ? matchedOpt.text : '';
+        suggestedAnswer = `Option ${inferredLetter}: ${optText}`.trim();
+      }
+    }
+
+    return {
+      suggested_answer: suggestedAnswer || 'Option A',
+      concept_summary: conceptSummary,
+      reasoning,
+      options_analysis: optionsAnalysis,
+      confidence: typeof parsed?.confidence === 'number' ? parsed.confidence : 0.99
+    };
   }
 
   /**
@@ -265,20 +404,16 @@ Return your response in STRICT valid JSON matching this schema:
 
     try {
       const parsed = JSON.parse(cleaned);
-      let reasoning = parsed.reasoning || rawResponse;
+
+      // Reconcile and cross-verify answer against options_analysis and reasoning
+      const reconciled = this.reconcileExplanation(parsed, questionData);
 
       // Notice if question has an image but a text-only model was used
       if (hasImages && !isVision) {
-        reasoning = `[⚠️ Image Detected: This question includes a diagram/image. Current model '${this.model}' is text-only. For 100% accuracy on image questions, use a Vision model like 'llava:7b' or 'llama3.2-vision'].\n\n` + reasoning;
+        reconciled.reasoning = `[⚠️ Image Detected: This question includes a diagram/image. Current model '${this.model}' is text-only. For 100% accuracy on image questions, use a Vision model like 'llava:7b' or 'llama3.2-vision'].\n\n` + reconciled.reasoning;
       }
 
-      return {
-        suggested_answer: parsed.suggested_answer || 'Analysis Complete',
-        concept_summary: parsed.concept_summary || '',
-        reasoning,
-        options_analysis: Array.isArray(parsed.options_analysis) ? parsed.options_analysis : [],
-        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.99
-      };
+      return reconciled;
     } catch (parseErr) {
       return {
         suggested_answer: 'Explanation Generated',

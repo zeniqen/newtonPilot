@@ -54,6 +54,15 @@ function createMockElement(tag, attrs = {}, text = '', children = []) {
     },
     closest: function () {
       return this.parentElement;
+    },
+    contains: function (target) {
+      if (this === target) return true;
+      let curr = target ? target.parentElement : null;
+      while (curr) {
+        if (curr === this) return true;
+        curr = curr.parentElement;
+      }
+      return false;
     }
   };
 }
@@ -200,6 +209,35 @@ fun(5)`;
   assert.strictEqual(result.inputPlaceholder, 'Enter your answer here');
   assert.strictEqual(result.options.length, 0, 'Should have 0 options');
   console.log('✓ Test 4: Short answer / text input question extraction passed');
+}
+
+// Test Case 5: Text Input outside narrow question container (document fallback)
+{
+  const rawPortalText = `QUESTION 2/2
+What is the return type of len()?`;
+
+  const qHeading = createMockElement('div', { class: 'question-title' }, rawPortalText);
+  const qContainer = createMockElement('div', { class: 'mcq-question' }, '', [qHeading]);
+  qHeading.parentElement = qContainer;
+
+  // Text input is rendered outside the mcq-question container as a sibling
+  const textInput = createMockElement('input', {
+    type: 'text',
+    placeholder: 'Enter your answer here',
+    class: 'external-answer-box'
+  });
+
+  const mockDoc = createMockElement('body', {}, rawPortalText, [qContainer, textInput]);
+  qContainer.parentElement = mockDoc;
+  textInput.parentElement = mockDoc;
+
+  global.document = mockDoc;
+  const result = NewtonExtractor.extractCurrentQuestion();
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.hasTextInput, true, 'Should find text input via document fallback');
+  assert.strictEqual(result.format, 'short_answer', 'Should format as short_answer');
+  console.log('✓ Test 5: External text input document fallback passed');
 }
 
 console.log('All extractor unit tests passed successfully!');

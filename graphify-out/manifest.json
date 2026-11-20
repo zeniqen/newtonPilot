@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.js": {
-    "mtime": 1795212897.982061,
-    "seen": 1795212977.3198872,
-    "ast_hash": "fffea29f2aab92aecb7f2ff5c16de32c",
+    "mtime": 1795214917.493388,
+    "seen": 1795215047.623415,
+    "ast_hash": "e47443b4037a5823db518cac36b686ed",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/content.js": {
@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/scripts/extractor.js": {
-    "mtime": 1795212658.6666965,
-    "seen": 1795212977.31989,
-    "ast_hash": "391850568aa6cb34932bdbfddb47f110",
+    "mtime": 1795215030.7384017,
+    "seen": 1795215047.623418,
+    "ast_hash": "06cea855ee31f77889c8184884c0d4d9",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/observer.js": {
@@ -48,15 +48,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/ollama-provider.js": {
-    "mtime": 1795212680.1716518,
-    "seen": 1795212977.319891,
-    "ast_hash": "89d36488915bc73c266785d128491a7a",
+    "mtime": 1795214821.2762737,
+    "seen": 1795215047.6234188,
+    "ast_hash": "8fe38338e43502d86f69013ef032dbc3",
     "semantic_hash": ""
   },
   "newtonpilot/tests/extractor.test.js": {
-    "mtime": 1795212916.907893,
-    "seen": 1795212977.319892,
-    "ast_hash": "b10b847c4c8a4812969e108a5f927520",
+    "mtime": 1795215030.8204827,
+    "seen": 1795215047.62342,
+    "ast_hash": "08489518be17341abea248e87b64f811",
     "semantic_hash": ""
   },
   "newtonpilot/utils/messaging.js": {
@@ -108,15 +108,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/tests/ollama-provider.test.js": {
-    "mtime": 1795212946.2181053,
-    "seen": 1795212977.319893,
-    "ast_hash": "a5b707609a4485067bca112198626b32",
+    "mtime": 1795214958.85686,
+    "seen": 1795215047.623421,
+    "ast_hash": "209406307622e7eb4625a95a3b5fb56a",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/agent.js": {
-    "mtime": 1795212729.7628953,
-    "seen": 1795212977.3198879,
-    "ast_hash": "b0bac3dc341ab1c95034ee270357dae3",
+    "mtime": 1795214878.89782,
+    "seen": 1795215047.623416,
+    "ast_hash": "507b9380d3277e19c174958691a11e61",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/executor.js": {
