@@ -36,11 +36,11 @@
           <input type="checkbox" id="autoMonitorToggle" checked>
           <span class="slider"></span>
         </label>
-        <span class="toggle-label">Auto-Monitor Quiz</span>
+        <span class="toggle-label">Auto-Monitor</span>
       </div>
       <div class="action-buttons">
         <button id="inspectBtn" class="btn btn-primary" title="Trigger question extraction immediately">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -54,7 +54,7 @@
           JSON
         </button>
         <button id="refreshBtn" class="btn btn-secondary" title="Refresh state from active tab">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
           </svg>
@@ -62,7 +62,25 @@
       </div>
     </section>
 
-    <!-- Notification Banner (For domain check or warning) -->
+    <!-- View Tabs -->
+    <nav class="tab-nav">
+      <button id="tabQuestionBtn" class="tab-btn active">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        Question View
+      </button>
+      <button id="tabDiagBtn" class="tab-btn">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        Diagnostics &amp; JSON
+      </button>
+    </nav>
+
+    <!-- Notification Banner -->
     <div id="portalNotice" class="alert-banner hidden">
       <span class="alert-icon">ℹ️</span>
       <span id="portalNoticeText" class="alert-text">Navigate to a quiz on Newton School to activate.</span>
@@ -84,7 +102,7 @@
       </div>
     </section>
 
-    <!-- Main Question View -->
+    <!-- Main Scrollable Area -->
     <main id="mainContent" class="content-scroll">
       <!-- Loading State -->
       <div id="loadingState" class="state-container hidden">
@@ -92,66 +110,62 @@
         <p class="state-text">Detecting active question...</p>
       </div>
 
-      <!-- Empty / Standby State -->
-      <div id="emptyState" class="state-container">
-        <div class="empty-icon-wrap">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7659DF" stroke-width="1.8">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
+      <!-- Tab 1: Question View -->
+      <div id="questionTabView" class="tab-view-content">
+        <!-- Empty / Standby State -->
+        <div id="emptyState" class="state-container">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7659DF" stroke-width="1.8">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <h3 class="state-title">No Question Detected</h3>
+          <p class="state-desc">Open an active practice quiz on Newton School portal and click Inspect.</p>
         </div>
-        <h3 class="state-title">No Question Detected</h3>
-        <p class="state-desc">Open an active practice quiz on Newton School portal and click Inspect.</p>
+
+        <!-- Question Preview Card -->
+        <section id="questionPreviewCard" class="preview-card hidden">
+          <div class="question-header">
+            <span class="section-title">Question Statement</span>
+            <span id="timestampBadge" class="timestamp-label">Just now</span>
+          </div>
+          <div id="questionStatement" class="question-body"></div>
+          <div id="questionMedia" class="question-media hidden"></div>
+
+          <div class="options-header">
+            <span class="section-title">Answer Options</span>
+            <span id="selectionSummary" class="selection-summary">No selection</span>
+          </div>
+          <div id="optionsList" class="options-list"></div>
+        </section>
       </div>
 
-      <!-- Question Preview Card -->
-      <section id="questionPreviewCard" class="preview-card hidden">
-        <div class="question-header">
-          <span class="section-title">Question Statement</span>
-          <span id="timestampBadge" class="timestamp-label">Just now</span>
-        </div>
-        <div id="questionStatement" class="question-body"></div>
-        <div id="questionMedia" class="question-media hidden"></div>
-
-        <div class="options-header">
-          <span class="section-title">Answer Options</span>
-          <span id="selectionSummary" class="selection-summary">No selection</span>
-        </div>
-        <div id="optionsList" class="options-list"></div>
-      </section>
-
-      <!-- Diagnostics Section -->
-      <section class="diagnostics-card">
-        <button id="toggleDiagBtn" class="diag-toggle">
-          <span class="diag-toggle-title">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-            Developer Diagnostics
-          </span>
-          <span id="diagArrow" class="diag-arrow">▼</span>
-        </button>
-        <div id="diagContent" class="diag-content hidden">
+      <!-- Tab 2: Diagnostics & JSON View -->
+      <div id="diagTabView" class="tab-view-content hidden">
+        <section class="diagnostics-card-full">
+          <div class="diag-header-bar">
+            <span class="section-title">Extraction Diagnostics</span>
+            <button id="copyJsonBtn" class="btn btn-primary btn-sm">Copy JSON</button>
+          </div>
           <div class="diag-meta">
             <div class="diag-row">
               <span class="diag-key">Portal URL:</span>
               <span id="diagUrl" class="diag-val truncate">-</span>
             </div>
             <div class="diag-row">
-              <span class="diag-key">Extraction Hash:</span>
+              <span class="diag-key">Content Hash:</span>
               <span id="diagHash" class="diag-val">-</span>
             </div>
           </div>
-          <div class="diag-actions">
-            <button id="copyJsonBtn" class="btn btn-secondary btn-sm">Copy JSON</button>
+          <div class="diag-code-wrapper">
+            <pre id="diagJson" class="diag-json">No extraction data available.</pre>
           </div>
-          <pre id="diagJson" class="diag-json">No extraction data available.</pre>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <!-- Footer -->

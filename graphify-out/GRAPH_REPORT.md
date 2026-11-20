@@ -1,17 +1,17 @@
 # Graph Report - assignments-extension  (2026-11-20)
 
 ## Corpus Check
-- 13 files · ~6,193 words
+- 13 files · ~6,681 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 2 file(s) not represented in the graph (top: (none) 1, .css 1)
 
 ## Summary
-- 77 nodes · 75 edges · 13 communities (7 shown, 6 thin omitted)
+- 78 nodes · 76 edges · 13 communities (7 shown, 6 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7035cc42`
+- Built from commit: `8ba16238`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,14 +31,14 @@
 ## God Nodes (most connected - your core abstractions)
 1. `NewtonPilot 🚀 — AI-Powered Chrome Extension` - 8 edges
 2. `OllamaProvider` - 5 edges
-3. `icons` - 4 edges
-4. `action` - 4 edges
-5. `default_icon` - 4 edges
-6. `renderQuestion()` - 4 edges
-7. `checkTabAndInitialize()` - 4 edges
-8. `5. Usage Guide` - 4 edges
-9. `background` - 3 edges
-10. `walk()` - 3 edges
+3. `renderQuestion()` - 4 edges
+4. `checkTabAndInitialize()` - 4 edges
+5. `5. Usage Guide` - 4 edges
+6. `action` - 4 edges
+7. `default_icon` - 4 edges
+8. `icons` - 4 edges
+9. `walk()` - 3 edges
+10. `7. Known Limitations & Phase 2 Roadmap` - 3 edges
 
 ## Surprising Connections (you probably didn't know these)
 - None detected - all connections are within the same source files.
@@ -65,7 +65,7 @@ Cohesion: 0.29
 Nodes (7): action, default_icon, default_popup, default_title, 128, 16, 48
 
 ### Community 4 - "popup.js"
-Cohesion: 0.52
+Cohesion: 0.43
 Nodes (6): checkTabAndInitialize(), formatTime(), formatTypeName(), renderQuestion(), setStatus(), showLoading()
 
 ### Community 5 - "extractor.test.js"
@@ -83,8 +83,6 @@ Nodes (4): icons, 128, 16, 48
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `action` connect `action` to `manifest.json`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Should `NewtonPilot 🚀 — AI-Powered Chrome Extension` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
-- **Why does `icons` connect `icons` to `manifest.json`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._

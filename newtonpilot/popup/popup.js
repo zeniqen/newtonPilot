@@ -29,9 +29,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selectionSummary = document.getElementById('selectionSummary');
   const optionsList = document.getElementById('optionsList');
 
-  const toggleDiagBtn = document.getElementById('toggleDiagBtn');
-  const diagArrow = document.getElementById('diagArrow');
-  const diagContent = document.getElementById('diagContent');
+  const tabQuestionBtn = document.getElementById('tabQuestionBtn');
+  const tabDiagBtn = document.getElementById('tabDiagBtn');
+  const questionTabView = document.getElementById('questionTabView');
+  const diagTabView = document.getElementById('diagTabView');
+
   const diagUrl = document.getElementById('diagUrl');
   const diagHash = document.getElementById('diagHash');
   const diagJson = document.getElementById('diagJson');
@@ -39,6 +41,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   const copyJsonTopBtn = document.getElementById('copyJsonTopBtn');
 
   let currentQuestionData = null;
+
+  // --------------------------------------------------------------------------
+  // Tab Navigation
+  // --------------------------------------------------------------------------
+
+  function switchTab(tabName) {
+    if (tabName === 'question') {
+      tabQuestionBtn.classList.add('active');
+      tabDiagBtn.classList.remove('active');
+      questionTabView.classList.remove('hidden');
+      diagTabView.classList.add('hidden');
+    } else {
+      tabDiagBtn.classList.add('active');
+      tabQuestionBtn.classList.remove('active');
+      diagTabView.classList.remove('hidden');
+      questionTabView.classList.add('hidden');
+    }
+  }
+
+  tabQuestionBtn.addEventListener('click', () => switchTab('question'));
+  tabDiagBtn.addEventListener('click', () => switchTab('diag'));
 
   // --------------------------------------------------------------------------
   // Status & UI State Management
@@ -263,11 +286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       : NewtonMessaging.ACTIONS.STOP_MONITORING;
 
     await NewtonMessaging.sendToActiveTab({ action });
-  });
-
-  toggleDiagBtn.addEventListener('click', () => {
-    const isHidden = diagContent.classList.toggle('hidden');
-    diagArrow.classList.toggle('open', !isHidden);
   });
 
   async function copyJsonToClipboard(btn) {
