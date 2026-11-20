@@ -1,0 +1,16 @@
+{
+  "name": "newtonpilot",
+  "version": "1.0.0",
+  "description": "Chrome Extension (Manifest V3) for learning and reviewing practice MCQ quizzes on Newton School portal.",
+  "scripts": {
+    "test": "node tests/extractor.test.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "newton-school",
+    "mcq-extractor"
+  ],
+  "author": "",
+  "license": "ISC"
+}

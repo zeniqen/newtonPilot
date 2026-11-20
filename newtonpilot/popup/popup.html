@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewtonPilot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-wrapper">
+          <svg viewBox="0 0 24 24" class="logo-icon" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke="#7659DF" fill="#1A1829" />
+            <path d="M8 16V8L12 13L16 8V16" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="16" cy="8" r="1.5" fill="#F472B6" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-name">NewtonPilot</h1>
+          <span class="brand-tagline">Quiz Review Companion</span>
+        </div>
+      </div>
+      <div id="connectionStatus" class="status-badge standby">
+        <span class="status-dot"></span>
+        <span class="status-label">Standby</span>
+      </div>
+    </header>
+
+    <!-- Main Toolbar Controls -->
+    <section class="toolbar-card">
+      <div class="toggle-control">
+        <label class="switch" for="autoMonitorToggle">
+          <input type="checkbox" id="autoMonitorToggle" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Auto-Monitor Quiz</span>
+      </div>
+      <div class="action-buttons">
+        <button id="inspectBtn" class="btn btn-primary" title="Trigger question extraction immediately">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Inspect
+        </button>
+        <button id="refreshBtn" class="btn btn-secondary" title="Refresh state from active tab">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Notification Banner (For domain check or warning) -->
+    <div id="portalNotice" class="alert-banner hidden">
+      <span class="alert-icon">ℹ️</span>
+      <span id="portalNoticeText" class="alert-text">Navigate to a quiz on Newton School to activate.</span>
+    </div>
+
+    <!-- Session Information Meta Card -->
+    <section id="sessionCard" class="meta-card hidden">
+      <div class="meta-item">
+        <span class="meta-label">Question</span>
+        <span id="questionNumBadge" class="meta-value accent">Q1</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Format</span>
+        <span id="formatBadge" class="meta-value badge-soft">Single Choice</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Options</span>
+        <span id="optionsCountBadge" class="meta-value">4 Detected</span>
+      </div>
+    </section>
+
+    <!-- Main Question View -->
+    <main id="mainContent" class="content-scroll">
+      <!-- Loading State -->
+      <div id="loadingState" class="state-container hidden">
+        <div class="spinner"></div>
+        <p class="state-text">Detecting active question...</p>
+      </div>
+
+      <!-- Empty / Standby State -->
+      <div id="emptyState" class="state-container">
+        <div class="empty-icon-wrap">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7659DF" stroke-width="1.8">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <h3 class="state-title">No Question Detected</h3>
+        <p class="state-desc">Open an active practice quiz on Newton School portal and click Inspect.</p>
+      </div>
+
+      <!-- Question Preview Card -->
+      <section id="questionPreviewCard" class="preview-card hidden">
+        <div class="question-header">
+          <span class="section-title">Question Statement</span>
+          <span id="timestampBadge" class="timestamp-label">Just now</span>
+        </div>
+        <div id="questionStatement" class="question-body"></div>
+        <div id="questionMedia" class="question-media hidden"></div>
+
+        <div class="options-header">
+          <span class="section-title">Answer Options</span>
+          <span id="selectionSummary" class="selection-summary">No selection</span>
+        </div>
+        <div id="optionsList" class="options-list"></div>
+      </section>
+
+      <!-- Diagnostics Section -->
+      <section class="diagnostics-card">
+        <button id="toggleDiagBtn" class="diag-toggle">
+          <span class="diag-toggle-title">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            Developer Diagnostics
+          </span>
+          <span id="diagArrow" class="diag-arrow">▼</span>
+        </button>
+        <div id="diagContent" class="diag-content hidden">
+          <div class="diag-meta">
+            <div class="diag-row">
+              <span class="diag-key">Portal URL:</span>
+              <span id="diagUrl" class="diag-val truncate">-</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-key">Extraction Hash:</span>
+              <span id="diagHash" class="diag-val">-</span>
+            </div>
+          </div>
+          <div class="diag-actions">
+            <button id="copyJsonBtn" class="btn btn-secondary btn-sm">Copy JSON</button>
+          </div>
+          <pre id="diagJson" class="diag-json">No extraction data available.</pre>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="mode-indicator">Learning Companion</span>
+      </div>
+      <div class="footer-right">
+        <span class="version">Phase 1 &bull; v1.0.0</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../utils/messaging.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
