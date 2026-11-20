@@ -165,6 +165,17 @@
           break;
         }
 
+        case NewtonMessaging.ACTIONS.FILL_TEXT_ANSWER: {
+          if (window.NewtonExecutor) {
+            window.NewtonExecutor.fillTextInput(request.payload?.answer || '')
+              .then(res => sendResponse(res))
+              .catch(err => sendResponse({ success: false, error: err.message }));
+          } else {
+            sendResponse({ success: false, error: 'NewtonExecutor module not loaded' });
+          }
+          break;
+        }
+
         case NewtonMessaging.ACTIONS.GET_AGENT_STATUS: {
           if (window.NewtonAgent) {
             sendResponse({ success: true, status: window.NewtonAgent.getStatus() });

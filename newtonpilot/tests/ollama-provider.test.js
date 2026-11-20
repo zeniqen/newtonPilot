@@ -142,6 +142,24 @@ async function runTests() {
     }
   }
 
+  // Test 6: buildPrompt produces Short Answer / Fill in the blank prompt
+  {
+    const provider = new OllamaProvider({ model: 'qwen2.5-coder:7b' });
+    const shortAnswerQ = {
+      questionText: 'What will be the output of fun(5)?',
+      format: 'short_answer',
+      options: [],
+      hasTextInput: true
+    };
+
+    const prompt = provider.buildPrompt(shortAnswerQ);
+    assert.ok(prompt.includes('Short Answer / Output Prediction / Fill-in-the-blank'));
+    assert.ok(prompt.includes('What will be the output of fun(5)?'));
+    assert.ok(prompt.includes('type the EXACT answer directly into an input field'));
+    assert.ok(!prompt.includes('Option A:'));
+    console.log('✓ Test 6: Short answer prompt generation passed');
+  }
+
   console.log('\nAll OllamaProvider tests passed successfully!');
 }
 

@@ -146,6 +146,17 @@ Some questions on Newton School include screenshots, syntax diagrams, or flowcha
 
 ---
 
+### 4. Short Answer & Direct Output Questions
+
+Some assessments contain questions without multiple choice options (e.g. recursive output prediction or fill-in-the-blank where the student must type the answer directly into an `Enter your answer here` input field).
+- **Automatic Format Detection**: NewtonPilot identifies when no options are present and an input element exists, labeling the question as `Short Answer`.
+- **Targeted Reasoning**: The prompt instructs Ollama to compute the exact execution output (e.g. `101`, `True`, `append`) without adding conversational prefixes or hallucinating option letters.
+- **Autonomous & Manual Typing**:
+  - In **Auto-Pilot** or **Step 1 Q**, NewtonPilot dispatches React synthetic input events directly into the portal's input element and automatically advances.
+  - In **Question View**, a **Fill Answer** button appears alongside the predicted output for 1-click typing.
+
+---
+
 ## Keyboard Shortcuts
 
 NewtonPilot registers global Chrome hotkeys so you can operate without opening the popup:

@@ -29,8 +29,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const timestampBadge = document.getElementById('timestampBadge');
   const questionStatement = document.getElementById('questionStatement');
   const questionMedia = document.getElementById('questionMedia');
+  const optionsHeaderLabel = document.getElementById('optionsHeaderLabel');
   const selectionSummary = document.getElementById('selectionSummary');
   const optionsList = document.getElementById('optionsList');
+  const shortAnswerCard = document.getElementById('shortAnswerCard');
+  const shortAnswerPlaceholder = document.getElementById('shortAnswerPlaceholder');
 
   // Phase 2 AI Elements
   const aiConnectionStatus = document.getElementById('aiConnectionStatus');
@@ -45,7 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const aiLoading = document.getElementById('aiLoading');
   const aiLoadingLabel = document.getElementById('aiLoadingLabel');
   const aiResultCard = document.getElementById('aiResultCard');
+  const suggestedBadgeLabel = document.getElementById('suggestedBadgeLabel');
   const aiSuggestedAnswer = document.getElementById('aiSuggestedAnswer');
+  const fillInputBtn = document.getElementById('fillInputBtn');
   const aiConfidenceBadge = document.getElementById('aiConfidenceBadge');
   const aiConceptSummaryWrap = document.getElementById('aiConceptSummaryWrap');
   const aiConceptSummary = document.getElementById('aiConceptSummary');
@@ -141,6 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function formatTypeName(format) {
     switch (format) {
+      case 'short_answer': return 'Short Answer';
       case 'single_choice': return 'Single Choice';
       case 'multi_choice': return 'Multi-Select';
       case 'true_false': return 'True / False';
@@ -222,6 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  let currentExplanationAnswer = '';
+
   function renderExplanation(data) {
     if (!data) return;
 
@@ -229,8 +237,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     aiResultCard.classList.remove('hidden');
     reExplainBtn.classList.remove('hidden');
 
-    // Suggested Answer & Confidence
-    aiSuggestedAnswer.textContent = data.suggested_answer || 'Analysis Complete';
+    const isShortAnswer = currentQuestionData?.format === 'short_answer' ||
+                          currentQuestionData?.hasTextInput ||
+                          (!currentQuestionData?.options || currentQuestionData.options.length === 0);
+
+    let cleanAnswer = (data.suggested_answer || '').trim();
+    if (isShortAnswer) {
+      cleanAnswer = cleanAnswer.replace(/^Option\s+[A-D][:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^Answer[:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^["'`]|["'`]$/g, '').trim();
+      suggestedBadgeLabel.textContent = 'PREDICTED OUTPUT';
+      aiSuggestedAnswer.textContent = cleanAnswer || data.suggested_answer;
+      if (fillInputBtn) fillInputBtn.classList.remove('hidden');
+    } else {
+      suggestedBadgeLabel.textContent = 'SUGGESTED ANSWER';
+      aiSuggestedAnswer.textContent = data.suggested_answer || 'Analysis Complete';
+      if (fillInputBtn) fillInputBtn.classList.add('hidden');
+    }
+    currentExplanationAnswer = cleanAnswer || data.suggested_answer;
+
     const confVal = typeof data.confidence === 'number' ? Math.round(data.confidence * 100) : 95;
     aiConfidenceBadge.textContent = `${confVal}% Confident`;
 
@@ -378,7 +403,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       : (data.questionProgressText || 'Active');
     questionNumBadge.textContent = qNumText;
     formatBadge.textContent = formatTypeName(data.format);
-    optionsCountBadge.textContent = `${data.optionsCount || (data.options || []).length} Options`;
+
+    const isShortAnswer = data.format === 'short_answer' || data.hasTextInput || (!data.options || data.options.length === 0);
+    optionsCountBadge.textContent = isShortAnswer ? 'Text Field' : `${data.optionsCount || (data.options || []).length} Options`;
 
     // Statement & Timestamp
     questionStatement.textContent = data.questionText || '(No question text detected)';
@@ -429,42 +456,59 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (agentVisionBadge) agentVisionBadge.classList.add('hidden');
     }
 
-    // Selection Summary
-    const selected = (data.options || []).filter(o => o.isSelected);
-    if (selected.length > 0) {
-      selectionSummary.textContent = `Selected: ${selected.map(o => o.label).join(', ')}`;
-      selectionSummary.className = 'selection-summary has-selection';
+    // Selection / Input Summary & Option List Rendering
+    if (isShortAnswer) {
+      if (optionsHeaderLabel) optionsHeaderLabel.textContent = 'ANSWER INPUT';
+      selectionSummary.textContent = data.inputValue ? `Entered: "${data.inputValue}"` : 'Awaiting input';
+      selectionSummary.className = data.inputValue ? 'selection-summary has-selection' : 'selection-summary';
+
+      optionsList.innerHTML = '';
+      if (shortAnswerCard) {
+        shortAnswerCard.classList.remove('hidden');
+        if (shortAnswerPlaceholder) {
+          shortAnswerPlaceholder.textContent = data.inputValue || data.inputPlaceholder || 'Enter your answer here';
+          shortAnswerPlaceholder.className = data.inputValue ? 'value-text' : 'placeholder-text';
+        }
+      }
     } else {
-      selectionSummary.textContent = 'No option selected';
-      selectionSummary.className = 'selection-summary';
-    }
+      if (optionsHeaderLabel) optionsHeaderLabel.textContent = 'ANSWER OPTIONS';
+      if (shortAnswerCard) shortAnswerCard.classList.add('hidden');
 
-    // Options Rendering
-    optionsList.innerHTML = '';
-    (data.options || []).forEach(opt => {
-      const item = document.createElement('div');
-      item.className = `option-item ${opt.isSelected ? 'selected' : ''}`;
-
-      const badge = document.createElement('span');
-      badge.className = 'option-badge';
-      badge.textContent = opt.label || '•';
-
-      const text = document.createElement('div');
-      text.className = 'option-text';
-      text.textContent = opt.text || '(Empty option)';
-
-      item.appendChild(badge);
-      item.appendChild(text);
-
-      if (opt.isSelected) {
-        const check = document.createElement('span');
-        check.className = 'option-check';
-        check.innerHTML = '&#10003;';
-        item.appendChild(check);
+      const selected = (data.options || []).filter(o => o.isSelected);
+      if (selected.length > 0) {
+        selectionSummary.textContent = `Selected: ${selected.map(o => o.label).join(', ')}`;
+        selectionSummary.className = 'selection-summary has-selection';
+      } else {
+        selectionSummary.textContent = 'No option selected';
+        selectionSummary.className = 'selection-summary';
       }
 
-      optionsList.appendChild(item);
-    });
+      optionsList.innerHTML = '';
+      (data.options || []).forEach(opt => {
+        const item = document.createElement('div');
+        item.className = `option-item ${opt.isSelected ? 'selected' : ''}`;
+
+        const badge = document.createElement('span');
+        badge.className = 'option-badge';
+        badge.textContent = opt.label || '•';
+
+        const text = document.createElement('div');
+        text.className = 'option-text';
+        text.textContent = opt.text || '(Empty option)';
+
+        item.appendChild(badge);
+        item.appendChild(text);
+
+        if (opt.isSelected) {
+          const check = document.createElement('span');
+          check.className = 'option-check';
+          check.innerHTML = '&#10003;';
+          item.appendChild(check);
+        }
+
+        optionsList.appendChild(item);
+      });
+    }
 
     // Check for cached AI explanation on active question
     checkCachedExplanation(data.questionId, aiModelSelect.value);
@@ -586,6 +630,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   copyJsonBtn.addEventListener('click', () => copyJsonToClipboard(copyJsonBtn));
   if (copyJsonTopBtn) {
     copyJsonTopBtn.addEventListener('click', () => copyJsonToClipboard(copyJsonTopBtn));
+  }
+
+  if (fillInputBtn) {
+    fillInputBtn.addEventListener('click', async () => {
+      if (!currentExplanationAnswer) return;
+      fillInputBtn.disabled = true;
+      const prevText = fillInputBtn.textContent;
+      fillInputBtn.textContent = 'Filling...';
+
+      try {
+        const res = await NewtonMessaging.sendToActiveTab({
+          action: NewtonMessaging.ACTIONS.FILL_TEXT_ANSWER,
+          payload: { answer: currentExplanationAnswer }
+        });
+        if (res?.data?.success || res?.success) {
+          fillInputBtn.textContent = 'Filled!';
+          setTimeout(() => {
+            fillInputBtn.textContent = prevText;
+            fillInputBtn.disabled = false;
+          }, 1500);
+        } else {
+          fillInputBtn.textContent = 'Failed';
+          setTimeout(() => {
+            fillInputBtn.textContent = prevText;
+            fillInputBtn.disabled = false;
+          }, 1500);
+        }
+      } catch (err) {
+        fillInputBtn.textContent = prevText;
+        fillInputBtn.disabled = false;
+      }
+    });
   }
 
   // --------------------------------------------------------------------------

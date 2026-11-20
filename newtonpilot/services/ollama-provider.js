@@ -98,15 +98,45 @@ class OllamaProvider {
    * @returns {string} Formatted prompt
    */
   buildPrompt(questionData, hasImages = false) {
-    const { questionText = '', options = [], format = 'single_choice' } = questionData || {};
+    const { questionText = '', options = [], format = 'single_choice', hasTextInput = false } = questionData || {};
 
-    const optionsText = options
-      .map(o => `Option ${o.label}: ${o.text}`)
-      .join('\n');
+    const isShortAnswer = format === 'short_answer' || hasTextInput || (!options || options.length === 0);
 
     const imageInstruction = hasImages
       ? '\n[CRITICAL]: An image is attached to this question. Carefully examine the code snippet, diagram, or terminal output displayed in the image.'
       : '';
+
+    if (isShortAnswer) {
+      return `
+You are an authoritative Python & Computer Science assessment engine and code interpreter.
+Your goal is 100% accuracy on this Short Answer / Output Prediction / Fill-in-the-blank question.
+
+CRITICAL INSTRUCTIONS FOR SHORT ANSWER:
+1. This question does NOT have options (A, B, C, D). The student must type the EXACT answer directly into an input field.
+2. Provide ONLY the concise, exact string or number that must be entered into the answer box in "suggested_answer".
+   - Examples of valid "suggested_answer": "101", "True", "append", "3", "Hello"
+   - Do NOT output "Option A", "Option D", or "The output is 101". Output ONLY the exact value.
+3. Simulate the code line-by-line. Pay strict attention to recursion stack unwind, print end parameters (e.g. end=''), and type representations.${imageInstruction}
+
+Question:
+${questionText}
+
+Format: Short Answer / Text Input
+
+Return your response in STRICT valid JSON matching this schema:
+{
+  "suggested_answer": "Exact answer to type into input field (e.g. 101 or True or append)",
+  "concept_summary": "1-sentence definitive rule or principle",
+  "reasoning": "Step-by-step code execution trace and walkthrough.",
+  "options_analysis": [],
+  "confidence": 0.99
+}
+`.trim();
+    }
+
+    const optionsText = options
+      .map(o => `Option ${o.label}: ${o.text}`)
+      .join('\n');
 
     return `
 You are an authoritative Python & Computer Science assessment engine and code interpreter.

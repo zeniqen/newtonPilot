@@ -24,21 +24,21 @@
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.js": {
-    "mtime": 1795211241.412758,
-    "seen": 1795211253.433402,
-    "ast_hash": "2dce1f43b745ccc562727a57b75d58d3",
+    "mtime": 1795212897.982061,
+    "seen": 1795212977.3198872,
+    "ast_hash": "fffea29f2aab92aecb7f2ff5c16de32c",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/content.js": {
-    "mtime": 1795211039.120796,
-    "seen": 1795211253.4334028,
-    "ast_hash": "f71030e696ef2c62c2acfd0a044b3bfe",
+    "mtime": 1795212748.76557,
+    "seen": 1795212977.3198888,
+    "ast_hash": "6c4faa293c8632619759c95a71d7804a",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/extractor.js": {
-    "mtime": 1795207906.2573957,
-    "seen": 1795207945.3236501,
-    "ast_hash": "ff063438870b3625ff16492e357f8231",
+    "mtime": 1795212658.6666965,
+    "seen": 1795212977.31989,
+    "ast_hash": "391850568aa6cb34932bdbfddb47f110",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/observer.js": {
@@ -48,21 +48,21 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/ollama-provider.js": {
-    "mtime": 1795207874.3283184,
-    "seen": 1795207945.323651,
-    "ast_hash": "511a57155d61c67614b39a49e99d2449",
+    "mtime": 1795212680.1716518,
+    "seen": 1795212977.319891,
+    "ast_hash": "89d36488915bc73c266785d128491a7a",
     "semantic_hash": ""
   },
   "newtonpilot/tests/extractor.test.js": {
-    "mtime": 1795197871.0763357,
-    "seen": 1795197930.5035222,
-    "ast_hash": "bc16325b7ffcb54d8b092d827ff83d1f",
+    "mtime": 1795212916.907893,
+    "seen": 1795212977.319892,
+    "ast_hash": "b10b847c4c8a4812969e108a5f927520",
     "semantic_hash": ""
   },
   "newtonpilot/utils/messaging.js": {
-    "mtime": 1795210999.225781,
-    "seen": 1795211253.433407,
-    "ast_hash": "4df225551e9df17c53eca476b92d4538",
+    "mtime": 1795212739.536419,
+    "seen": 1795212977.319893,
+    "ast_hash": "99f8fece5b934ed31ff92adc13982047",
     "semantic_hash": ""
   },
   "GEMINI.md": {
@@ -72,15 +72,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/README.md": {
-    "mtime": 1795211967.4492106,
-    "seen": 1795211972.2844129,
-    "ast_hash": "dbf98cc5bdc1f8ac83e3e67b909ba480",
+    "mtime": 1795212972.0970006,
+    "seen": 1795212977.319895,
+    "ast_hash": "c5295f9e6ad54535631bbe920e3e52ef",
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.html": {
-    "mtime": 1795211838.3796618,
-    "seen": 1795211878.917702,
-    "ast_hash": "e50c7d411302755d5c5b011c66ec8458",
+    "mtime": 1795212780.5566752,
+    "seen": 1795212977.319895,
+    "ast_hash": "6a630cbf2921d8a4de9f7167792b6464",
     "semantic_hash": ""
   },
   "newtonpilot/assets/icons/icon.svg": {
@@ -108,33 +108,33 @@
     "semantic_hash": ""
   },
   "newtonpilot/tests/ollama-provider.test.js": {
-    "mtime": 1795207940.3965745,
-    "seen": 1795207945.323652,
-    "ast_hash": "a5ceb7ed3f030f180d57659e11de2b25",
+    "mtime": 1795212946.2181053,
+    "seen": 1795212977.319893,
+    "ast_hash": "a5b707609a4485067bca112198626b32",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/agent.js": {
-    "mtime": 1795211032.494274,
-    "seen": 1795211253.433402,
-    "ast_hash": "71341b3960573fdb3b5b4fadda26f78b",
+    "mtime": 1795212729.7628953,
+    "seen": 1795212977.3198879,
+    "ast_hash": "b0bac3dc341ab1c95034ee270357dae3",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/executor.js": {
-    "mtime": 1795207433.5530062,
-    "seen": 1795207460.394866,
-    "ast_hash": "356b64ba77fd0ad8c46c09d794c67a32",
+    "mtime": 1795212709.0017755,
+    "seen": 1795212977.3198888,
+    "ast_hash": "acaffebc0182398d793f143624bb3e36",
     "semantic_hash": ""
   },
   "newtonpilot/tests/agent.test.js": {
-    "mtime": 1795207401.9991722,
-    "seen": 1795207460.394868,
-    "ast_hash": "65ac2c96b402f3c4a48753571e8a401d",
+    "mtime": 1795212930.7038083,
+    "seen": 1795212977.319892,
+    "ast_hash": "89fa3c672b56497d972e6e9a93b48448",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795211962.0469935,
-    "seen": 1795211972.2844129,
-    "ast_hash": "dbf98cc5bdc1f8ac83e3e67b909ba480",
+    "mtime": 1795212965.2242386,
+    "seen": 1795212977.319894,
+    "ast_hash": "c5295f9e6ad54535631bbe920e3e52ef",
     "semantic_hash": ""
   }
 }

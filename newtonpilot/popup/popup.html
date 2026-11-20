@@ -161,10 +161,25 @@
           <div id="questionMedia" class="question-media hidden"></div>
 
           <div class="options-header">
-            <span class="eyebrow-label">ANSWER OPTIONS</span>
+            <span id="optionsHeaderLabel" class="eyebrow-label">ANSWER OPTIONS</span>
             <span id="selectionSummary" class="selection-summary">No selection</span>
           </div>
           <div id="optionsList" class="options-list"></div>
+
+          <!-- Short Answer Text Input Card -->
+          <div id="shortAnswerCard" class="short-answer-card hidden">
+            <div class="input-preview-row">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                <line x1="9" y1="20" x2="15" y2="20"></line>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+              </svg>
+              <span class="short-answer-title">Text Input Field Detected</span>
+            </div>
+            <div class="short-answer-input-mock">
+              <span id="shortAnswerPlaceholder" class="placeholder-text">Enter your answer here</span>
+            </div>
+          </div>
 
           <!-- Local AI Pedagogical Tutor -->
           <section id="aiSection" class="ai-section">
@@ -243,10 +258,15 @@
                 <!-- Suggested Answer Banner -->
                 <div class="suggested-answer-banner">
                   <div class="suggested-left">
-                    <span class="suggested-badge-label">SUGGESTED ANSWER</span>
+                    <span id="suggestedBadgeLabel" class="suggested-badge-label">SUGGESTED ANSWER</span>
                     <span id="aiSuggestedAnswer" class="suggested-answer-value">Option D: append()</span>
                   </div>
-                  <div id="aiConfidenceBadge" class="confidence-badge">99% Confident</div>
+                  <div class="suggested-right">
+                    <button id="fillInputBtn" class="btn-fill-input hidden" title="Fill this answer directly into the active assessment input field">
+                      Fill Answer
+                    </button>
+                    <div id="aiConfidenceBadge" class="confidence-badge">99% Confident</div>
+                  </div>
                 </div>
 
                 <!-- Concept Summary -->

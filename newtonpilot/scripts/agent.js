@@ -123,9 +123,79 @@ const NewtonAgent = (() => {
     }
 
     const suggested = explanation.suggested_answer || '';
+    const confidence = Math.round((explanation.confidence || 0.95) * 100);
+    const isShortAnswer = questionData.format === 'short_answer' ||
+                          questionData.hasTextInput ||
+                          (!questionData.options || questionData.options.length === 0);
+
+    // 3A. Short Answer / Direct Text Input Question
+    if (isShortAnswer) {
+      // Clean short answer string (strip accidental "Option D: 101" or prefixes)
+      let cleanAnswer = (suggested || '').trim();
+      cleanAnswer = cleanAnswer.replace(/^Option\s+[A-D][:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^Answer[:.\-\s]*/i, '');
+      cleanAnswer = cleanAnswer.replace(/^["'`]|["'`]$/g, '').trim();
+
+      log(`AI Decided (Short Answer): "${cleanAnswer}" (${confidence}% confidence)`, 'success');
+
+      lastAction = `Filling Input: "${cleanAnswer}"...`;
+      broadcastState();
+
+      if (!window?.NewtonExecutor?.fillTextInput) {
+        log('NewtonExecutor.fillTextInput method unavailable', 'error');
+        return { success: false, error: 'fillTextInput unavailable' };
+      }
+
+      const fillRes = await window.NewtonExecutor.fillTextInput(cleanAnswer);
+      if (!fillRes.success) {
+        log(`Failed to fill answer: ${fillRes.error}`, 'error');
+        return { success: false, error: fillRes.error };
+      }
+
+      log(`Successfully entered answer "${cleanAnswer}" into text field`, 'success');
+
+      // 4. Terminate Check (Check if this was the final question)
+      const completion = window.NewtonExecutor.checkCompletion({
+        number: currentStep,
+        total: totalSteps
+      });
+
+      if (completion.isComplete) {
+        log(`Completion detected: ${completion.reason}`, 'success');
+        lastAction = 'Assessment Complete (Safely Stopped)';
+        state = AGENT_STATES.COMPLETED;
+        isRunning = false;
+        broadcastState();
+        return { success: true, isFinal: true, questionNumber: currentStep, answer: cleanAnswer };
+      }
+
+      // 5. Navigate (Click Next button to move forward)
+      if (shouldAutoNavigate) {
+        lastAction = 'Navigating to next question...';
+        broadcastState();
+        await sleep(stepDelayMs);
+
+        const navRes = await window.NewtonExecutor.clickNext();
+        if (!navRes.success) {
+          if (navRes.reachedEnd) {
+            log('Final question reached (Next unavailable). Stopping.', 'success');
+            state = AGENT_STATES.COMPLETED;
+            isRunning = false;
+            broadcastState();
+            return { success: true, isFinal: true, questionNumber: currentStep, answer: cleanAnswer };
+          } else {
+            log(`Navigation failed: ${navRes.error}`, 'error');
+            return { success: false, error: navRes.error };
+          }
+        }
+      }
+
+      return { success: true, isFinal: false, questionNumber: currentStep, answer: cleanAnswer };
+    }
+
+    // 3B. Standard MCQ Option Question
     const match = suggested.match(/\b([A-D])\b/i);
     const targetLetter = match ? match[1].toUpperCase() : null;
-    const confidence = Math.round((explanation.confidence || 0.95) * 100);
 
     log(`AI Decided: ${suggested} (${confidence}% confidence)`, 'success');
 

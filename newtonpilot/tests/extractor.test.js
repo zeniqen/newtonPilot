@@ -34,6 +34,9 @@ function createMockElement(tag, attrs = {}, text = '', children = []) {
           let match = false;
           if (sel.includes('input[type="radio"]') && child.tagName === 'INPUT' && child.type === 'radio') match = true;
           if (sel.includes('input[type="checkbox"]') && child.tagName === 'INPUT' && child.type === 'checkbox') match = true;
+          if (sel.includes('input[placeholder*="answer"') && child.tagName === 'INPUT' && (child.attributes.placeholder || '').toLowerCase().includes('answer')) match = true;
+          if (sel.includes('input') && child.tagName === 'INPUT') match = true;
+          if (sel.includes('textarea') && child.tagName === 'TEXTAREA') match = true;
           if (sel.includes('img') && child.tagName === 'IMG') match = true;
           if (sel.includes('h1') && child.tagName === 'H1') match = true;
           if (sel.includes('h2') && child.tagName === 'H2') match = true;
@@ -156,6 +159,47 @@ add()`;
   assert.strictEqual(result.hasSelection, true);
   assert.deepStrictEqual(result.selectedOptions, ['B']);
   console.log('✓ Test 3: Newton School actual portal structure passed perfectly');
+}
+
+// Test Case 4: Short Answer / Text Input Question (from user screenshot)
+{
+  const rawPortalText = `Direct Recursion, Python Builtin Data Structures - Revision
+QUESTION 1/2
+What will be the output of the following code?
+
+def fun(n):
+    if n == 0:
+        return
+    fun(n // 2)
+    print(n % 2, end='')
+
+fun(5)`;
+
+  const qHeading = createMockElement('div', { class: 'question-title' }, rawPortalText);
+  const textInput = createMockElement('input', {
+    type: 'text',
+    placeholder: 'Enter your answer here',
+    class: 'answer-input'
+  });
+
+  const qContainer = createMockElement('div', { class: 'question-container' }, '', [
+    qHeading, textInput
+  ]);
+  [qHeading, textInput].forEach(c => c.parentElement = qContainer);
+  const mockDoc = createMockElement('body', {}, rawPortalText, [qContainer]);
+  qContainer.parentElement = mockDoc;
+
+  global.document = mockDoc;
+  const result = NewtonExtractor.extractCurrentQuestion();
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.questionNumber, 1, 'Should extract Q1');
+  assert.strictEqual(result.totalQuestions, 2, 'Should extract total Q2');
+  assert.strictEqual(result.format, 'short_answer', 'Should detect short_answer format');
+  assert.strictEqual(result.hasTextInput, true, 'Should detect text input');
+  assert.strictEqual(result.inputPlaceholder, 'Enter your answer here');
+  assert.strictEqual(result.options.length, 0, 'Should have 0 options');
+  console.log('✓ Test 4: Short answer / text input question extraction passed');
 }
 
 console.log('All extractor unit tests passed successfully!');

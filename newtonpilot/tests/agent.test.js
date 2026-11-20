@@ -65,6 +65,37 @@ async function runTests() {
     console.log('✓ Test 3: Agent state machine transitions passed');
   }
 
+  // Test 4: fillTextInput synthetic event execution for Short Answer questions
+  {
+    const dispatchedEvents = [];
+    let filledValue = '';
+    const mockInput = {
+      tagName: 'INPUT',
+      getAttribute: (attr) => attr === 'placeholder' ? 'Enter your answer here' : null,
+      offsetWidth: 200,
+      offsetHeight: 40,
+      focus: () => {},
+      scrollIntoView: () => {},
+      dispatchEvent: (e) => dispatchedEvents.push(e.type),
+      set value(v) { filledValue = v; },
+      get value() { return filledValue; }
+    };
+
+    global.document = {
+      querySelector: (selector) => selector.includes('data-newton-input') ? mockInput : null,
+      querySelectorAll: () => [mockInput],
+      body: { querySelectorAll: () => [mockInput] }
+    };
+
+    const res = await NewtonExecutor.fillTextInput('101');
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(res.filledValue, '101');
+    assert.strictEqual(filledValue, '101');
+    assert.ok(dispatchedEvents.includes('input'));
+    assert.ok(dispatchedEvents.includes('change'));
+    console.log('✓ Test 4: fillTextInput synthetic event handling passed');
+  }
+
   console.log('\nAll Autonomous Agent tests passed successfully!');
 }
 

@@ -128,6 +128,89 @@ const NewtonExecutor = (() => {
   }
 
   /**
+   * Action Executor: Fills a value into the active question's text input field.
+   * Dispatches React synthetic event chains to ensure state synchronization.
+   * @param {string} textValue 
+   * @returns {Promise<{success: boolean, filledValue: string, error?: string}>}
+   */
+  async function fillTextInput(textValue) {
+    if (typeof document === 'undefined') {
+      return { success: false, error: 'Document unavailable' };
+    }
+
+    const cleanVal = String(textValue ?? '').trim();
+
+    // 1. Locate tagged input or search in container
+    const tagged = document.querySelector('[data-newton-input="true"]');
+    let inputEl = tagged && isVisible(tagged) ? tagged : null;
+
+    if (!inputEl) {
+      const container = window?.NewtonExtractor?.findQuestionContainer?.() || document.body;
+      const selectors = [
+        'input[placeholder*="answer" i]',
+        'textarea[placeholder*="answer" i]',
+        'input[type="text"]',
+        'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="search"])',
+        'textarea',
+        '[contenteditable="true"]'
+      ];
+      for (const sel of selectors) {
+        const found = Array.from(container.querySelectorAll(sel)).find(isVisible);
+        if (found) {
+          inputEl = found;
+          break;
+        }
+      }
+    }
+
+    if (!inputEl) {
+      return { success: false, filledValue: cleanVal, error: 'Could not locate text input field for answer.' };
+    }
+
+    try {
+      if (typeof inputEl.scrollIntoView === 'function') {
+        inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (typeof inputEl.focus === 'function') {
+        inputEl.focus();
+      }
+
+      if (inputEl.isContentEditable) {
+        inputEl.innerText = cleanVal;
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        // Trigger React internal property descriptor setter
+        const prototype = Object.getPrototypeOf(inputEl);
+        const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set ||
+                            (typeof HTMLInputElement !== 'undefined' && Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set) ||
+                            (typeof HTMLTextAreaElement !== 'undefined' && Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set);
+
+        if (valueSetter) {
+          valueSetter.call(inputEl, cleanVal);
+        } else {
+          inputEl.value = cleanVal;
+        }
+
+        // Dispatch synthetic event chain
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof KeyboardEvent !== 'undefined') {
+          inputEl.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+          inputEl.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter' }));
+        }
+      }
+
+      // Allow microtask cycle for React state update
+      await new Promise(r => setTimeout(r, 100));
+
+      return { success: true, filledValue: cleanVal };
+    } catch (err) {
+      return { success: false, filledValue: cleanVal, error: err.message || 'Failed to fill input field' };
+    }
+  }
+
+  /**
    * Navigation Engine: Locates and clicks the "Next >" button.
    * @returns {Promise<{success: boolean, reachedEnd: boolean, error?: string}>}
    */
@@ -197,6 +280,7 @@ const NewtonExecutor = (() => {
   return {
     findOptionElement,
     clickOption,
+    fillTextInput,
     clickNext,
     checkCompletion,
     simulateClick

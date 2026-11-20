@@ -456,12 +456,63 @@ const NewtonExtractor = (() => {
   }
 
   /**
-   * Determine question format based on options.
-   * @param {Array<Object>} options 
-   * @returns {'single_choice'|'multi_choice'|'true_false'|'unknown'}
+   * Helper: Detect text input field for short answer / output prediction / fill-in questions.
+   * @param {Element} container 
+   * @returns {{hasInput: boolean, placeholder: string|null, value: string|null, type?: string}}
    */
-  function determineFormat(options) {
-    if (!options || options.length === 0) return 'unknown';
+  function detectTextInput(container = document) {
+    if (!container) return { hasInput: false, placeholder: null, value: null };
+
+    const selectors = [
+      'input[placeholder*="answer" i]',
+      'textarea[placeholder*="answer" i]',
+      'input[type="text"]',
+      'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="search"])',
+      'textarea',
+      '[contenteditable="true"]'
+    ];
+
+    for (const sel of selectors) {
+      const candidates = Array.from(container.querySelectorAll(sel)).filter(isVisible);
+      const inputEl = candidates.find(el => {
+        const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+        const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+        const name = (el.getAttribute('name') || '').toLowerCase();
+        // Ignore search/filter inputs
+        if (ph.includes('search') || ariaLabel.includes('search') || name.includes('search')) return false;
+        return true;
+      });
+
+      if (inputEl) {
+        if (typeof inputEl.setAttribute === 'function') {
+          inputEl.setAttribute('data-newton-input', 'true');
+        }
+        return {
+          hasInput: true,
+          placeholder: inputEl.getAttribute('placeholder') || 'Enter your answer here',
+          value: inputEl.value || (inputEl.isContentEditable ? inputEl.innerText : '') || '',
+          type: inputEl.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text'
+        };
+      }
+    }
+
+    return { hasInput: false, placeholder: null, value: null };
+  }
+
+  /**
+   * Determine question format based on options and text input fields.
+   * @param {Array<Object>} options 
+   * @param {Object} [textInputInfo]
+   * @returns {'single_choice'|'multi_choice'|'true_false'|'short_answer'|'unknown'}
+   */
+  function determineFormat(options, textInputInfo = {}) {
+    if (textInputInfo && textInputInfo.hasInput && (!options || options.length === 0)) {
+      return 'short_answer';
+    }
+
+    if (!options || options.length === 0) {
+      return textInputInfo && textInputInfo.hasInput ? 'short_answer' : 'unknown';
+    }
 
     const hasCheckbox = options.some(opt => opt.type === 'checkbox' || opt.role === 'checkbox');
     if (hasCheckbox) return 'multi_choice';
@@ -500,9 +551,10 @@ const NewtonExtractor = (() => {
 
       const { text: questionText, images } = extractQuestionBody(container);
       const options = extractOptions(container);
+      const textInput = detectTextInput(container);
 
       // Validate minimal question signal
-      if (!questionText && options.length === 0) {
+      if (!questionText && options.length === 0 && !textInput.hasInput) {
         return {
           success: false,
           reason: 'Assessment page detected, but question content is empty or still loading.',
@@ -511,8 +563,8 @@ const NewtonExtractor = (() => {
         };
       }
 
-      const format = determineFormat(options);
-      const contentSignature = `${questionMeta.number || ''}|${questionText}|${options.map(o => o.text).join(';;')}`;
+      const format = determineFormat(options, textInput);
+      const contentSignature = `${questionMeta.number || ''}|${questionText}|${options.map(o => o.text).join(';;')}|${textInput.hasInput ? 'input' : ''}`;
       const questionId = quickHash(contentSignature);
 
       return {
@@ -523,10 +575,13 @@ const NewtonExtractor = (() => {
         questionProgressText: questionMeta.rawText,
         questionText: questionText || '(Visual/Media Question)',
         format,
+        hasTextInput: Boolean(textInput.hasInput),
+        inputPlaceholder: textInput.placeholder,
+        inputValue: textInput.value,
         images,
         options,
         optionsCount: options.length,
-        hasSelection: options.some(o => o.isSelected),
+        hasSelection: options.some(o => o.isSelected) || Boolean(textInput.value),
         selectedOptions: options.filter(o => o.isSelected).map(o => o.label),
         url,
         timestamp: Date.now()
@@ -545,7 +600,8 @@ const NewtonExtractor = (() => {
   return {
     extractCurrentQuestion,
     findQuestionContainer,
-    detectQuestionNumber
+    detectQuestionNumber,
+    detectTextInput
   };
 })();
 
