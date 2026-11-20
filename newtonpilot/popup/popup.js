@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const diagHash = document.getElementById('diagHash');
   const diagJson = document.getElementById('diagJson');
   const copyJsonBtn = document.getElementById('copyJsonBtn');
+  const copyJsonTopBtn = document.getElementById('copyJsonTopBtn');
 
   let currentQuestionData = null;
 
@@ -269,19 +270,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     diagArrow.classList.toggle('open', !isHidden);
   });
 
-  copyJsonBtn.addEventListener('click', async () => {
+  async function copyJsonToClipboard(btn) {
     if (!currentQuestionData) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(currentQuestionData, null, 2));
-      const originalText = copyJsonBtn.textContent;
-      copyJsonBtn.textContent = 'Copied!';
+      const originalText = btn.innerHTML;
+      btn.textContent = 'Copied!';
       setTimeout(() => {
-        copyJsonBtn.textContent = originalText;
+        btn.innerHTML = originalText;
       }, 1500);
     } catch (err) {
       console.error('Clipboard copy failed:', err);
     }
-  });
+  }
+
+  copyJsonBtn.addEventListener('click', () => copyJsonToClipboard(copyJsonBtn));
+  if (copyJsonTopBtn) {
+    copyJsonTopBtn.addEventListener('click', () => copyJsonToClipboard(copyJsonTopBtn));
+  }
 
   // Listen for live background or content script broadcasts
   if (chrome?.runtime?.onMessage) {

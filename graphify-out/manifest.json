@@ -1,0 +1,110 @@
+{
+  ".gemini/settings.json": {
+    "mtime": 1795196172.9755015,
+    "seen": 1795197329.866357,
+    "ast_hash": "06bfde396838c5093d5951023182855c",
+    "semantic_hash": ""
+  },
+  "newtonpilot/background/service-worker.js": {
+    "mtime": 1795197141.7078311,
+    "seen": 1795197329.86636,
+    "ast_hash": "5236e97203121bb691175e5d019deafa",
+    "semantic_hash": ""
+  },
+  "newtonpilot/manifest.json": {
+    "mtime": 1795197054.2076187,
+    "seen": 1795197329.8663611,
+    "ast_hash": "1aca23cbba80717100a328fb2f47aa30",
+    "semantic_hash": ""
+  },
+  "newtonpilot/package.json": {
+    "mtime": 1795197320.8364458,
+    "seen": 1795197329.866362,
+    "ast_hash": "68f889fcfcf2022da5e756e1098cbbd8",
+    "semantic_hash": ""
+  },
+  "newtonpilot/popup/popup.js": {
+    "mtime": 1795197238.989727,
+    "seen": 1795197329.8663628,
+    "ast_hash": "48cdfd1cba798aa7c3a596160d6fe316",
+    "semantic_hash": ""
+  },
+  "newtonpilot/scripts/content.js": {
+    "mtime": 1795197134.724994,
+    "seen": 1795197329.8663628,
+    "ast_hash": "90d0683349d6d3e1143b0e4e287f8a6a",
+    "semantic_hash": ""
+  },
+  "newtonpilot/scripts/extractor.js": {
+    "mtime": 1795197287.2294168,
+    "seen": 1795197329.866364,
+    "ast_hash": "ccae8231283c33ce7aab26d96806db9b",
+    "semantic_hash": ""
+  },
+  "newtonpilot/scripts/observer.js": {
+    "mtime": 1795197123.1140208,
+    "seen": 1795197329.866365,
+    "ast_hash": "c8148880f77b3e6b3d65cd442973dc8e",
+    "semantic_hash": ""
+  },
+  "newtonpilot/services/ollama-provider.js": {
+    "mtime": 1795197156.4134445,
+    "seen": 1795197329.866365,
+    "ast_hash": "dd5c4a424fd7768d2d08666689c8c993",
+    "semantic_hash": ""
+  },
+  "newtonpilot/tests/extractor.test.js": {
+    "mtime": 1795197312.4330254,
+    "seen": 1795197329.866366,
+    "ast_hash": "4ef1e97e81fdc12d3a68b110c45759d7",
+    "semantic_hash": ""
+  },
+  "newtonpilot/utils/messaging.js": {
+    "mtime": 1795197073.309712,
+    "seen": 1795197329.866366,
+    "ast_hash": "1c559faef9515410ed0b03f4bf95a2d7",
+    "semantic_hash": ""
+  },
+  "GEMINI.md": {
+    "mtime": 1795196172.975128,
+    "seen": 1795197329.8663669,
+    "ast_hash": "dfe5fa7939121e96d61b54077cc9ab84",
+    "semantic_hash": ""
+  },
+  "newtonpilot/README.md": {
+    "mtime": 1795197254.424934,
+    "seen": 1795197329.8663669,
+    "ast_hash": "7ad19222aeb0780ebf7740a2099419e3",
+    "semantic_hash": ""
+  },
+  "newtonpilot/popup/popup.html": {
+    "mtime": 1795197179.3472857,
+    "seen": 1795197329.866368,
+    "ast_hash": "fe050e449349f2558e4329e1a12e2ba6",
+    "semantic_hash": ""
+  },
+  "newtonpilot/assets/icons/icon.svg": {
+    "mtime": 1795197061.0657058,
+    "seen": 1795197329.866368,
+    "ast_hash": "0d67e7382d180c7e8487cef81df42753",
+    "semantic_hash": ""
+  },
+  "newtonpilot/assets/icons/icon128.png": {
+    "mtime": 1795197042.9822817,
+    "seen": 1795197329.866369,
+    "ast_hash": "a8dd15ac4848bc2ce876a3384b88e96f",
+    "semantic_hash": ""
+  },
+  "newtonpilot/assets/icons/icon16.png": {
+    "mtime": 1795197042.9790783,
+    "seen": 1795197329.866369,
+    "ast_hash": "ddc68fbb109579f76958d0ad3de3a528",
+    "semantic_hash": ""
+  },
+  "newtonpilot/assets/icons/icon48.png": {
+    "mtime": 1795197042.9808927,
+    "seen": 1795197329.86637,
+    "ast_hash": "7d849adb382d27dd58a51e6e541baa87",
+    "semantic_hash": ""
+  }
+}

@@ -39,6 +39,44 @@ const NewtonExtractor = (() => {
   }
 
   /**
+   * Helper: Clean portal boilerplate (breadcrumbs, action buttons, progress bars)
+   * from the question statement.
+   * @param {string} rawText 
+   * @returns {string}
+   */
+  function cleanQuestionStatement(rawText) {
+    if (!rawText) return '';
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const filtered = [];
+
+    const ignorePatterns = [
+      /^Submit Quiz$/i,
+      /^QUESTION\s*\d+\s*\/\s*\d+$/i,
+      /^Question\s*\d+\s*(?:of|\/)\s*(\d+)?$/i,
+      /^Mark for review$/i,
+      /^Clear Selection$/i,
+      /^Next$/i,
+      /^Previous$/i
+    ];
+
+    for (const line of lines) {
+      // Stop taking question statement lines if options block is reached
+      if (/^[A-D]$/i.test(line) || /^[A-D][\.\)\:\-]\s+/i.test(line)) {
+        break;
+      }
+      if (ignorePatterns.some(pat => pat.test(line))) continue;
+      filtered.push(line);
+    }
+
+    // Skip course topic/module breadcrumb if followed by actual question
+    if (filtered.length > 1 && /(?:Revision|Assessment|Module|Lecture|Track)\s*$/i.test(filtered[0])) {
+      filtered.shift();
+    }
+
+    return filtered.join('\n\n').trim();
+  }
+
+  /**
    * Helper: Calculate lightweight hash for question deduplication.
    * @param {string} text 
    * @returns {string}
@@ -58,19 +96,33 @@ const NewtonExtractor = (() => {
    * @returns {{number: number|null, total: number|null, rawText: string|null}}
    */
   function detectQuestionNumber(root = document) {
-    const candidates = [
-      ...root.querySelectorAll(
-        '[class*="header" i], [class*="progress" i], [class*="badge" i], [class*="count" i], [class*="title" i], [aria-label*="question" i]'
-      ),
-      ...document.querySelectorAll('header, nav, [role="navigation"], [class*="breadcrumb" i]')
-    ];
-
     const regexPatterns = [
+      /\bQUESTION\s*#?\s*(\d+)\s*(?:of|\/)\s*(\d+)\b/i,
       /Question\s*#?\s*(\d+)\s*(?:of|\/)\s*(\d+)/i,
       /Q(?:uestion)?\.?\s*(\d+)\s*(?:of|\/)\s*(\d+)/i,
       /(\d+)\s*(?:of|\/)\s*(\d+)\s*(?:Questions?)?/i,
       /Question\s*#?\s*(\d+)/i,
       /Q\.?\s*(\d+)\b/i
+    ];
+
+    // Priority 1: Check full visible text of page for "QUESTION 1/5"
+    const bodyText = (root && root.innerText) || (typeof document !== 'undefined' && document.body && document.body.innerText) || '';
+    for (const pattern of regexPatterns) {
+      const match = bodyText.match(pattern);
+      if (match) {
+        return {
+          number: parseInt(match[1], 10),
+          total: match[2] ? parseInt(match[2], 10) : null,
+          rawText: cleanText(match[0])
+        };
+      }
+    }
+
+    const candidates = [
+      ...root.querySelectorAll(
+        '[class*="header" i], [class*="progress" i], [class*="badge" i], [class*="count" i], [class*="title" i], [aria-label*="question" i]'
+      ),
+      ...document.querySelectorAll('header, nav, [role="navigation"], [class*="breadcrumb" i]')
     ];
 
     for (const el of candidates) {
@@ -149,10 +201,12 @@ const NewtonExtractor = (() => {
       '[class*="question-text" i]',
       '[class*="problem-description" i]',
       '[class*="statement" i]',
+      '[class*="mcq-question" i]',
       '[class*="markdown" i]',
       '.prose',
       'h1, h2, h3, h4',
-      '[data-testid*="question-title" i]'
+      '[data-testid*="question-title" i]',
+      '[class*="question" i]'
     ];
 
     let questionEl = null;
@@ -191,6 +245,8 @@ const NewtonExtractor = (() => {
         text = cleanText(paragraphs[0].innerText);
       }
     }
+
+    text = cleanQuestionStatement(text);
 
     return { text, images };
   }
@@ -340,11 +396,15 @@ const NewtonExtractor = (() => {
   function parseOptionLabel(fullText, fallbackLetter) {
     if (!fullText) return { label: fallbackLetter, text: '' };
 
-    const prefixMatch = fullText.match(/^([A-D0-9])[\.\)\:\-]\s*(.*)$/i);
+    // Matches "A. Option", "A) Option", "A\nOption", "A Option"
+    const prefixMatch = fullText.match(/^([A-D0-9])(?:[\.\)\:\-]\s*|\s+)(.*)$/s);
     if (prefixMatch) {
+      let body = cleanText(prefixMatch[2]);
+      // Remove any duplicate letter prefix (e.g. "A extend()" -> "extend()")
+      body = body.replace(/^[A-D0-9][\.\)\:\-]?\s+/, '');
       return {
         label: prefixMatch[1].toUpperCase(),
-        text: cleanText(prefixMatch[2])
+        text: body || cleanText(prefixMatch[2])
       };
     }
 

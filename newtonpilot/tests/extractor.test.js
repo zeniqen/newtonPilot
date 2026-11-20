@@ -115,4 +115,47 @@ function createMockElement(tag, attrs = {}, text = '', children = []) {
   console.log('✓ Test 2: Multi-choice checkbox extraction passed');
 }
 
+// Test Case 3: Newton School Actual Assessment DOM Structure
+{
+  const rawPortalText = `Python List, Python List Definition, Python List Input, Python List Indexing, Py ... - Revision
+Submit Quiz
+QUESTION 1/5
+Mark for review
+Clear Selection
+Which method adds an element only to the end of a list?
+A
+extend()
+B
+add()`;
+
+  const qHeading = createMockElement('div', { class: 'mcq-question' }, rawPortalText);
+  const opt1 = createMockElement('div', { class: 'quiz-option' }, 'A\nextend()');
+  const opt2 = createMockElement('div', { class: 'quiz-option selected', 'aria-checked': 'true' }, 'B\nadd()');
+  const opt3 = createMockElement('div', { class: 'quiz-option' }, 'C\ninsert()');
+  const opt4 = createMockElement('div', { class: 'quiz-option' }, 'D\nappend()');
+
+  const qContainer = createMockElement('div', { class: 'question-container' }, '', [
+    qHeading, opt1, opt2, opt3, opt4
+  ]);
+  [opt1, opt2, opt3, opt4, qHeading].forEach(c => c.parentElement = qContainer);
+  const mockDoc = createMockElement('body', {}, rawPortalText, [qContainer]);
+  qContainer.parentElement = mockDoc;
+
+  global.document = mockDoc;
+  const result = NewtonExtractor.extractCurrentQuestion();
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.questionNumber, 1, 'Should extract question number 1');
+  assert.strictEqual(result.totalQuestions, 5, 'Should extract total questions 5');
+  assert.strictEqual(result.questionText, 'Which method adds an element only to the end of a list?', 'Should isolate exact question statement');
+  assert.strictEqual(result.options.length, 4, 'Should extract 4 options');
+  assert.strictEqual(result.options[0].label, 'A');
+  assert.strictEqual(result.options[0].text, 'extend()', 'Option text should not repeat A');
+  assert.strictEqual(result.options[1].label, 'B');
+  assert.strictEqual(result.options[1].text, 'add()', 'Option text should not repeat B');
+  assert.strictEqual(result.hasSelection, true);
+  assert.deepStrictEqual(result.selectedOptions, ['B']);
+  console.log('✓ Test 3: Newton School actual portal structure passed perfectly');
+}
+
 console.log('All extractor unit tests passed successfully!');
