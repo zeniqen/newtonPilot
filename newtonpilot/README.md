@@ -79,13 +79,13 @@ OLLAMA_ORIGINS="*" ollama serve
 
 1. Clone or download this repository to your machine:
    ```bash
-   git clone https://github.com/your-username/assignments-extension.git
-   cd assignments-extension
+   git clone https://github.com/zeniqen/newtonPilot.git
+   cd newtonPilot
    ```
 2. Open Google Chrome and enter `chrome://extensions/` in the URL address bar.
 3. In the top-right corner of the Extensions page, toggle **Developer mode** to **ON**.
 4. Click the **Load unpacked** button in the top-left toolbar.
-5. In the file picker, select the `newtonpilot` folder (inside `assignments-extension/newtonpilot`).
+5. In the file picker, select the `newtonpilot` folder (inside `newtonPilot/newtonpilot`).
 6. Click **Select** / **Open**.
 7. NewtonPilot will appear in your extensions list. Click the puzzle icon in Chrome's top toolbar and click the pin icon next to **NewtonPilot** for quick access.
 
