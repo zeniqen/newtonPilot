@@ -6,10 +6,8 @@
   "4": "popup.js",
   "5": "extractor.test.js",
   "6": "OllamaProvider",
-  "7": "icons",
   "8": "content.js",
   "9": "GEMINI.md",
   "10": "observer.js",
-  "11": "messaging.js",
-  "12": "service-worker.js"
+  "11": "messaging.js"
 }

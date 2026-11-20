@@ -141,6 +141,87 @@
             <span id="selectionSummary" class="selection-summary">No selection</span>
           </div>
           <div id="optionsList" class="options-list"></div>
+
+          <!-- Phase 2: Local AI Pedagogical Tutor -->
+          <section id="aiSection" class="ai-section">
+            <div class="ai-header-bar">
+              <div class="ai-title-wrap">
+                <span class="ai-sparkle">✨</span>
+                <span class="ai-title">Concept Review (Ollama)</span>
+              </div>
+              <div id="aiConnectionStatus" class="ai-status-pill offline" title="Ollama local server connection status">
+                <span class="ai-status-dot"></span>
+                <span id="aiStatusText">Checking...</span>
+              </div>
+            </div>
+
+            <!-- Model Selector & Trigger Controls -->
+            <div class="ai-controls-bar">
+              <div class="model-picker-wrap">
+                <label for="aiModelSelect" class="model-label">Model:</label>
+                <select id="aiModelSelect" class="model-select">
+                  <option value="qwen2.5-coder:7b">qwen2.5-coder:7b</option>
+                  <option value="llama3.2:1b">llama3.2:1b</option>
+                </select>
+              </div>
+              <div class="ai-action-buttons">
+                <button id="explainBtn" class="btn btn-ai" title="Explain concepts and reason through this question">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  Explain Concept
+                </button>
+                <button id="reExplainBtn" class="btn btn-secondary btn-icon hidden" title="Force re-analyze question with local AI">
+                  ↺
+                </button>
+              </div>
+            </div>
+
+            <!-- Ollama Status Notice Banner -->
+            <div id="aiNotice" class="ai-notice-box hidden">
+              <span id="aiNoticeIcon" class="ai-notice-icon">⚠️</span>
+              <span id="aiNoticeText" class="ai-notice-text">Ollama server offline at localhost:11434. Run <code>ollama serve</code> in terminal.</span>
+            </div>
+
+            <!-- AI Output Area -->
+            <div id="aiOutputContainer" class="ai-output-container">
+              <!-- Loading Shimmer State -->
+              <div id="aiLoading" class="ai-loading-box hidden">
+                <div class="ai-loading-spinner"></div>
+                <span id="aiLoadingLabel" class="ai-loading-text">Analyzing concepts with local Ollama...</span>
+              </div>
+
+              <!-- Explanation Result Card -->
+              <div id="aiResultCard" class="ai-result-card hidden">
+                <!-- Suggested Answer Banner -->
+                <div class="suggested-answer-banner">
+                  <div class="suggested-left">
+                    <span class="suggested-badge-label">Suggested Answer</span>
+                    <span id="aiSuggestedAnswer" class="suggested-answer-value">Option D: append()</span>
+                  </div>
+                  <div id="aiConfidenceBadge" class="confidence-badge">98% Confident</div>
+                </div>
+
+                <!-- Concept Summary -->
+                <div id="aiConceptSummaryWrap" class="ai-concept-wrap hidden">
+                  <div class="ai-concept-title">Core Concept</div>
+                  <div id="aiConceptSummary" class="ai-concept-text"></div>
+                </div>
+
+                <!-- Deep-Dive Reasoning -->
+                <div class="ai-reasoning-wrap">
+                  <div class="ai-reasoning-title">Pedagogical Walkthrough</div>
+                  <div id="aiReasoningText" class="ai-reasoning-text"></div>
+                </div>
+
+                <!-- Option-by-Option Breakdown -->
+                <div id="aiBreakdownWrap" class="ai-breakdown-wrap hidden">
+                  <div class="ai-breakdown-title">Option Breakdown</div>
+                  <div id="aiBreakdownList" class="ai-breakdown-list"></div>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
       </div>
 
@@ -174,7 +255,7 @@
         <span class="mode-indicator">Learning Companion</span>
       </div>
       <div class="footer-right">
-        <span class="version">Phase 1 &bull; v1.0.0</span>
+        <span class="version">Phase 2 &bull; v1.1.0</span>
       </div>
     </footer>
   </div>
