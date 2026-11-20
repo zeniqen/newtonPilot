@@ -299,7 +299,7 @@ const NewtonExtractor = (() => {
         const parsedLabel = parseOptionLabel(labelText, defaultLetter);
 
         optionCandidates.push({
-          id: input.id || `opt-${index}`,
+          id: input.value || `${input.id || 'opt'}-${index}`,
           label: parsedLabel.label,
           text: parsedLabel.text,
           isSelected,
