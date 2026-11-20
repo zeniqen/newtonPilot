@@ -251,5 +251,5 @@ This project is created for educational study, practice assessments, and mock en
 ---
 
 <p align="center">
-  <sub>Made with care by <b>zeniqen</b> for <b>jagrati</b></sub>
+  <sub>Made by <b>zeniqen</b> for <b>jagrati</b></sub>
 </p>

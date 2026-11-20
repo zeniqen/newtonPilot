@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,12 @@
   <!-- Google Fonts: Arthakram System B (Bricolage Grotesque, Instrument Sans, Caveat) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Caveat:wght@600&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Caveat:wght@600&family=Instrument+Sans:wght@400..700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Header -->
@@ -18,7 +22,8 @@
         <div class="logo-wrapper">
           <svg viewBox="0 0 24 24" class="logo-icon" fill="none">
             <circle cx="12" cy="12" r="10.5" fill="#FFE6D8" stroke="#FC6912" stroke-width="1.6" />
-            <path d="M12 4.5L17.5 19L12 15.5L6.5 19L12 4.5Z" fill="#FC6912" stroke="#443D39" stroke-width="0.8" stroke-linejoin="round" />
+            <path d="M12 4.5L17.5 19L12 15.5L6.5 19L12 4.5Z" fill="#FC6912" stroke="#443D39" stroke-width="0.8"
+              stroke-linejoin="round" />
             <circle cx="12" cy="12.5" r="1.5" fill="#FFFFFF" />
           </svg>
         </div>
@@ -96,7 +101,8 @@
 
     <!-- Notification Banner -->
     <div id="portalNotice" class="alert-banner hidden">
-      <svg class="alert-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="alert-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+        stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="16" x2="12" y2="12"></line>
         <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -187,18 +193,22 @@
               <div class="ai-action-buttons">
                 <button id="explainBtn" class="btn btn-ai" title="Explain concepts and reason through this question">
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    <polygon
+                      points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                    </polygon>
                   </svg>
                   Explain
                 </button>
-                <button id="reExplainBtn" class="btn btn-secondary btn-icon-only hidden" title="Force re-analyze question with local AI">
+                <button id="reExplainBtn" class="btn btn-secondary btn-icon-only hidden"
+                  title="Force re-analyze question with local AI">
                   ↺
                 </button>
               </div>
             </div>
 
             <!-- Vision Model Advisory Banner -->
-            <div id="aiVisionNotice" class="vision-notice-badge hidden" title="Diagram detected in question. A vision-capable model is recommended.">
+            <div id="aiVisionNotice" class="vision-notice-badge hidden"
+              title="Diagram detected in question. A vision-capable model is recommended.">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -209,12 +219,15 @@
 
             <!-- Ollama Status Notice Banner -->
             <div id="aiNotice" class="ai-notice-box hidden">
-              <svg id="aiNoticeIcon" class="ai-notice-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <svg id="aiNoticeIcon" class="ai-notice-icon" viewBox="0 0 24 24" width="13" height="13" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                </path>
                 <line x1="12" y1="9" x2="12" y2="13"></line>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
-              <span id="aiNoticeText" class="ai-notice-text">Ollama server offline at localhost:11434. Run <code>ollama serve</code> in terminal.</span>
+              <span id="aiNoticeText" class="ai-notice-text">Ollama server offline at localhost:11434. Run
+                <code>ollama serve</code> in terminal.</span>
             </div>
 
             <!-- AI Output Area -->
@@ -291,7 +304,8 @@
             </div>
 
             <!-- Current Action Card (Clickable to Expand Details) -->
-            <div id="agentActionBox" class="agent-action-box expandable" title="Click to expand/collapse message details">
+            <div id="agentActionBox" class="agent-action-box expandable"
+              title="Click to expand/collapse message details">
               <div class="action-caption-row">
                 <span class="action-caption">CURRENT ACTION</span>
                 <span class="action-expand-hint">Expand ▾</span>
@@ -303,14 +317,16 @@
           <!-- Controls Bar -->
           <div class="agent-controls-card">
             <div class="agent-main-actions">
-              <button id="agentToggleBtn" class="btn btn-pilot-start" title="Start or pause continuous autonomous solving [⌥P]">
+              <button id="agentToggleBtn" class="btn btn-pilot-start"
+                title="Start or pause continuous autonomous solving [⌥P]">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
                 <span id="agentToggleText">Start Auto-Pilot</span>
                 <kbd class="kbd-badge light">⌥P</kbd>
               </button>
-              <button id="agentStepBtn" class="btn btn-secondary" title="Execute 1 question cycle (Inspect -> Decide -> Click) [⌥S]">
+              <button id="agentStepBtn" class="btn btn-secondary"
+                title="Execute 1 question cycle (Inspect -> Decide -> Click) [⌥S]">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5 4 15 12 5 20 5 4"></polygon>
                   <line x1="19" y1="5" x2="19" y2="19"></line>
@@ -381,7 +397,7 @@
     <footer class="app-footer">
       <div class="footer-left">
         <span class="mode-indicator">Mock Assessment Mode · Local Ollama</span>
-        <span class="footer-credit">Made with care by zeniqen for jagrati</span>
+        <span class="footer-credit">Made by zeniqen for jagrati</span>
       </div>
       <div class="footer-right">
         <span class="version">v2.1.0</span>
@@ -392,4 +408,5 @@
   <script src="../utils/messaging.js"></script>
   <script src="popup.js"></script>
 </body>
+
 </html>

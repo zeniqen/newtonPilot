@@ -72,15 +72,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/README.md": {
-    "mtime": 1795211713.6663418,
-    "seen": 1795211718.506381,
-    "ast_hash": "d549c4b18f92adca10ed35295eb6f97c",
+    "mtime": 1795211874.1681626,
+    "seen": 1795211878.917701,
+    "ast_hash": "db0e5342dcd402f98d87ba46794326a8",
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.html": {
-    "mtime": 1795211695.511199,
-    "seen": 1795211718.506382,
-    "ast_hash": "1ca92c795fd51a92b0f27f304fac3436",
+    "mtime": 1795211838.3796618,
+    "seen": 1795211878.917702,
+    "ast_hash": "e50c7d411302755d5c5b011c66ec8458",
     "semantic_hash": ""
   },
   "newtonpilot/assets/icons/icon.svg": {
@@ -105,24 +105,6 @@
     "mtime": 1795197042.9808927,
     "seen": 1795197329.86637,
     "ast_hash": "7d849adb382d27dd58a51e6e541baa87",
-    "semantic_hash": ""
-  },
-  ".playwright-cli/page-2026-11-20T18-12-43-506Z.yml": {
-    "mtime": 1795198363.5069318,
-    "seen": 1795199206.7829351,
-    "ast_hash": "df4a6113d9e50f57ec03db891fb880a9",
-    "semantic_hash": ""
-  },
-  ".playwright-cli/page-2026-11-20T18-14-38-498Z.yml": {
-    "mtime": 1795198478.5003605,
-    "seen": 1795199206.782937,
-    "ast_hash": "e4786c256e1156deead99fb4e7b6b372",
-    "semantic_hash": ""
-  },
-  ".playwright-cli/page-2026-11-20T18-15-34-852Z.yml": {
-    "mtime": 1795198534.853114,
-    "seen": 1795199206.782938,
-    "ast_hash": "f9aabcbd5d2877eb0903b34b042a5b2f",
     "semantic_hash": ""
   },
   "newtonpilot/tests/ollama-provider.test.js": {
@@ -150,9 +132,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795211709.7565033,
-    "seen": 1795211718.50638,
-    "ast_hash": "d549c4b18f92adca10ed35295eb6f97c",
+    "mtime": 1795211870.3562236,
+    "seen": 1795211878.9177,
+    "ast_hash": "db0e5342dcd402f98d87ba46794326a8",
     "semantic_hash": ""
   }
 }
