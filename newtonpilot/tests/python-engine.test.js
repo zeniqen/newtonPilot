@@ -148,6 +148,55 @@ for i in range(1, 5):
     console.log('✓ Test 8: Execution count query passed');
   }
 
+  // Test 9: Python Builtins (len, sum, min, max, abs)
+  {
+    const q9 = `What will be the final value of ans?
+lst = [10, 20, 30]
+ans = len(lst) + sum(lst)`;
+
+    const res = engine.solve(q9);
+    assert.strictEqual(res.solved, true);
+    assert.strictEqual(res.answer, '63', '3 + 60 = 63');
+    console.log('✓ Test 9: Builtins len and sum passed');
+  }
+
+  // Test 10: Trailing non-code text below code does not corrupt parser
+  {
+    const q10 = `What is the last number printed in the 4th outer loop and 3rd inner loop?
+
+c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")
+
+Choose the correct option below:
+12`;
+
+    const res = engine.solve(q10);
+    assert.strictEqual(res.solved, true, 'Should discard trailing non-code text');
+    assert.strictEqual(res.answer, '21');
+    console.log('✓ Test 10: Trailing non-code text resilience passed');
+  }
+
+  // Test 11: Question prompt positioned below code
+  {
+    const q11 = `c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")
+
+What is the last number printed in the 4th outer loop and 3rd inner loop?`;
+
+    const res = engine.solve(q11);
+    assert.strictEqual(res.solved, true);
+    assert.strictEqual(res.answer, '21');
+    console.log('✓ Test 11: Question prompt below code passed');
+  }
+
   console.log('\nAll NewtonPythonEngine tests passed successfully!');
 }
 

@@ -27,6 +27,17 @@ class NewtonPythonEngine {
     const fenceMatch = text.match(/```(?:python)?\s*([\s\S]*?)\s*```/i);
     if (fenceMatch) return fenceMatch[1].trim();
 
+    function isPythonLine(line) {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (trimmed.startsWith('#')) return true;
+      if (/^[ ]{2,}|\t/.test(line)) return true;
+      if (/^(?:def\s+\w+|for\s+\w+\s+in|while\s+|if\s+|elif\s+|else:|try:|except|finally:|class\s+\w+|return\b|print\s*\(|break\b|continue\b|pass\b)/.test(trimmed)) return true;
+      if (/^[a-zA-Z_]\w*(?:\[.*?\])?\s*(?:[+\-*\/%]?=)/.test(trimmed)) return true;
+      if (/^[a-zA-Z_]\w*\s*\(.*\)\s*$/.test(trimmed)) return true;
+      return false;
+    }
+
     // Look for lines of Python code
     const lines = text.split('\n');
     const codeLines = [];
@@ -36,19 +47,26 @@ class NewtonPythonEngine {
       const line = lines[i];
       const trimmed = line.trim();
 
-      const isCodeStart = /^(?:def\s+\w+|for\s+\w+\s+in|while\s+|if\s+|v\s*=|x\s*=|n\s*=|a\s*=|ans\s*=|s\s*=|lst\s*=|arr\s*=|[a-zA-Z_]\w*\s*=\s*)/.test(trimmed);
+      const isCodeStart = /^(?:def\s+\w+|for\s+\w+\s+in|while\s+|if\s+|v\s*=|x\s*=|n\s*=|a\s*=|ans\s*=|s\s*=|c\s*=|i\s*=|j\s*=|lst\s*=|arr\s*=|[a-zA-Z_]\w*\s*=\s*)/.test(trimmed);
 
       if (isCodeStart && !inCode) {
         inCode = true;
       }
 
       if (inCode) {
+        if (!isPythonLine(line)) {
+          break; // Stop at first non-code English sentence
+        }
         // Stop if options block or portal action buttons are encountered
-        if (/^[A-D][\.\)\:\-]\s+/.test(trimmed) || /^(?:Submit|Mark for review|Next|Previous)/i.test(trimmed)) {
+        if (/^[A-D][\.\)\:\-]\s+/.test(trimmed) || /^(?:Submit|Mark for review|Next|Previous|Choose|Select|Enter|Note)/i.test(trimmed)) {
           break;
         }
         codeLines.push(line);
       }
+    }
+
+    while (codeLines.length > 0 && !codeLines[codeLines.length - 1].trim()) {
+      codeLines.pop();
     }
 
     return codeLines.join('\n').trim();
@@ -209,6 +227,15 @@ class NewtonPythonEngine {
       // Power **
       line = line.replace(/(\b\w+|\d+)\s*\*\*\s*(\b\w+|\d+)/g, 'Math.pow($1, $2)');
 
+      // Python Builtin functions
+      line = line.replace(/\blen\s*\(/g, '__py_len(')
+                 .replace(/\babs\s*\(/g, '__py_abs(')
+                 .replace(/\bmin\s*\(/g, '__py_min(')
+                 .replace(/\bmax\s*\(/g, '__py_max(')
+                 .replace(/\bsum\s*\(/g, '__py_sum(')
+                 .replace(/\bint\s*\(/g, '__py_int(')
+                 .replace(/\bstr\s*\(/g, '__py_str(');
+
       // Variable assignment: let varName = ...
       const assignMatch = line.match(/^([a-zA-Z_]\w*)\s*=\s*(.*)/);
       if (assignMatch && !opensBlock) {
@@ -280,16 +307,32 @@ class NewtonPythonEngine {
         return Array.isArray(obj) ? obj : (typeof obj === 'string' ? obj.split('') : Object.keys(obj));
       }
 
+      function __py_len(x) {
+        return x ? (typeof x.length !== 'undefined' ? x.length : Object.keys(x).length) : 0;
+      }
+      function __py_abs(x) { return Math.abs(x); }
+      function __py_min(...args) { return Math.min(...(Array.isArray(args[0]) ? args[0] : args)); }
+      function __py_max(...args) { return Math.max(...(Array.isArray(args[0]) ? args[0] : args)); }
+      function __py_sum(arr) { return Array.isArray(arr) ? arr.reduce((a, b) => a + b, 0) : 0; }
+      function __py_int(x) { return parseInt(x, 10); }
+      function __py_str(x) { return String(x); }
+
       const returnCollector = trackedList
         .map(v => `${JSON.stringify(v)}: (typeof ${v} !== 'undefined' ? ${v} : undefined)`)
         .join(', ');
 
-      const runner = new Function('__py_print', '__py_range', '__py_iter', '__checkOps', `
+      const runner = new Function(
+        '__py_print', '__py_range', '__py_iter', '__checkOps',
+        '__py_len', '__py_abs', '__py_min', '__py_max', '__py_sum', '__py_int', '__py_str',
+        `
         ${jsCode}
         return { ${returnCollector} };
       `);
 
-      const finalScope = runner(__py_print, __py_range, __py_iter, __checkOps);
+      const finalScope = runner(
+        __py_print, __py_range, __py_iter, __checkOps,
+        __py_len, __py_abs, __py_min, __py_max, __py_sum, __py_int, __py_str
+      );
       return {
         success: true,
         stdout: stdout.trim(),

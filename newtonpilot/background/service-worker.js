@@ -111,20 +111,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const pyEngine = provider.pythonEngine;
         const pySol = pyEngine ? pyEngine.solve(questionData.questionText) : null;
 
-        // Check cache if not forcing refresh
+        // 1. FAST PATH: If deterministic engine solves it, return IMMEDIATELY (0ms, no network delay/timeouts)
+        if (pySol && pySol.solved) {
+          console.log(`[NewtonPilot] Fast deterministic solution: "${pySol.answer}" (${pySol.explanation})`);
+          let explanation = {
+            suggested_answer: pySol.answer,
+            concept_summary: 'Deterministic Python Engine Verification',
+            reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+            options_analysis: [],
+            confidence: 1.0
+          };
+          if (questionData.options && questionData.options.length > 0) {
+            const matchedOpt = questionData.options.find(o => {
+              const t = String(o.text || '').trim();
+              return t === pySol.answer || t === `Option ${pySol.answer}` || new RegExp(`\\b${pySol.answer}\\b`).test(t);
+            });
+            if (matchedOpt) {
+              explanation.suggested_answer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
+            }
+          }
+          await chrome.storage.local.set({ [cacheKey]: explanation });
+          sendResponse({
+            success: true,
+            explanation,
+            fromCache: false,
+            model: 'Deterministic Engine'
+          });
+          return;
+        }
+
+        // 2. Check cache if not forcing refresh
         if (!forceRefresh) {
           const cached = await chrome.storage.local.get([cacheKey]);
           if (cached && cached[cacheKey]) {
-            let explanation = cached[cacheKey];
-            // Cross-verify cached explanation with deterministic engine
-            if (pySol && pySol.solved && explanation.suggested_answer !== pySol.answer) {
-              console.warn(`[NewtonPilot] Cache contained outdated answer '${explanation.suggested_answer}'. Overriding with deterministic answer '${pySol.answer}'.`);
-              explanation = provider.reconcileExplanation(explanation, questionData);
-              await chrome.storage.local.set({ [cacheKey]: explanation });
-            }
             sendResponse({
               success: true,
-              explanation,
+              explanation: cached[cacheKey],
               fromCache: true,
               model
             });

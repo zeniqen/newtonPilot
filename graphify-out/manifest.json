@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/background/service-worker.js": {
-    "mtime": 1795257649.3753934,
-    "seen": 1795257727.73732,
-    "ast_hash": "a96f7e248474cc946fb2292d67f304fc",
+    "mtime": 1795259100.5378392,
+    "seen": 1795259173.682584,
+    "ast_hash": "5190e91015bb4500d43b538200ed9981",
     "semantic_hash": ""
   },
   "newtonpilot/manifest.json": {
@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.js": {
-    "mtime": 1795257667.2144084,
-    "seen": 1795257727.737324,
-    "ast_hash": "e96d33a24505359f24770ad634387775",
+    "mtime": 1795259138.7687287,
+    "seen": 1795259173.6825888,
+    "ast_hash": "977f34b903d6d4d893e1ef0cb4a71bcb",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/content.js": {
@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/ollama-provider.js": {
-    "mtime": 1795257632.9973683,
-    "seen": 1795257727.737328,
-    "ast_hash": "e57f42fafa8c897051c81bc7a06afc01",
+    "mtime": 1795259122.3357487,
+    "seen": 1795259173.682594,
+    "ast_hash": "4cfe58f7f7fc9ef1e8d45d3d0d8d304e",
     "semantic_hash": ""
   },
   "newtonpilot/tests/extractor.test.js": {
@@ -138,15 +138,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/python-engine.js": {
-    "mtime": 1795257526.3138068,
-    "seen": 1795257727.737328,
-    "ast_hash": "fd2ca1ddfdc6086b7858834fa427f98c",
+    "mtime": 1795259085.2249882,
+    "seen": 1795259173.682594,
+    "ast_hash": "f7cd9bc181ae15c45b235d3494c42cd4",
     "semantic_hash": ""
   },
   "newtonpilot/tests/python-engine.test.js": {
-    "mtime": 1795257686.44894,
-    "seen": 1795257727.737331,
-    "ast_hash": "397bee658206f8fc4cdd9997c64cd8e7",
+    "mtime": 1795259157.104444,
+    "seen": 1795259173.6825972,
+    "ast_hash": "320dee2ac73a6c34fe5b20506920ab96",
     "semantic_hash": ""
   }
 }

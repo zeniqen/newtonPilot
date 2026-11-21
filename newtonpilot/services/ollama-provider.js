@@ -28,7 +28,7 @@ class OllamaProvider {
     this.host = (config.host || 'http://localhost:11434').replace(/\/+$/, '');
     this.model = config.model || 'qwen2.5-coder:7b';
     this.temperature = config.temperature ?? 0.0;
-    this.timeoutMs = config.timeoutMs || 120000;
+    this.timeoutMs = config.timeoutMs || 25000;
     this.isReady = false;
     this.pythonEngine = config.pythonEngine || (PythonEngineClass ? new PythonEngineClass() : null);
   }
@@ -382,6 +382,29 @@ Return your response in STRICT valid JSON matching this schema:
     // 0. Pre-solve deterministically via NewtonPythonEngine if applicable
     const questionText = questionData?.questionText || '';
     const pySol = this.pythonEngine ? this.pythonEngine.solve(questionText) : null;
+
+    if (pySol && pySol.solved) {
+      const isShortAnswer = questionData?.format === 'short_answer' ||
+                            questionData?.hasTextInput ||
+                            (!questionData?.options || questionData?.options.length === 0);
+      let suggestedAnswer = pySol.answer;
+      if (!isShortAnswer && questionData?.options && questionData.options.length > 0) {
+        const matchedOpt = questionData.options.find(o => {
+          const t = String(o.text || '').trim();
+          return t === pySol.answer || t === `Option ${pySol.answer}` || new RegExp(`\\b${pySol.answer}\\b`).test(t);
+        });
+        if (matchedOpt) {
+          suggestedAnswer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
+        }
+      }
+      return {
+        suggested_answer: suggestedAnswer,
+        concept_summary: 'Deterministic Python Engine Verification',
+        reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+        options_analysis: [],
+        confidence: 1.0
+      };
+    }
 
     // 1. Process and resolve images
     const rawImages = questionData?.images || [];

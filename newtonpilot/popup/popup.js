@@ -330,7 +330,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // UI Loading state
     aiNotice.classList.add('hidden');
-    aiResultCard.classList.add('hidden');
+    if (!currentExplanationAnswer) {
+      aiResultCard.classList.add('hidden');
+    }
     aiLoading.classList.remove('hidden');
     aiLoadingLabel.textContent = `Analyzing question concept with ${selectedModel}...`;
     explainBtn.disabled = true;
@@ -349,9 +351,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       aiLoading.classList.add('hidden');
 
       if (chrome.runtime.lastError || !res || !res.success) {
-        aiNotice.classList.remove('hidden');
-        const err = res?.error || chrome.runtime.lastError?.message || 'Failed to communicate with local Ollama service.';
-        aiNoticeText.innerHTML = `AI Analysis failed: ${err}. Ensure Ollama is running (<code>ollama serve</code>).`;
+        if (!currentExplanationAnswer) {
+          aiNotice.classList.remove('hidden');
+          const err = res?.error || chrome.runtime.lastError?.message || 'Failed to communicate with local Ollama service.';
+          aiNoticeText.innerHTML = `AI Analysis failed: ${err}. Ensure Ollama is running (<code>ollama serve</code>).`;
+        }
         return;
       }
 
