@@ -57,14 +57,20 @@ class NewtonPythonEngine {
   /**
    * Transpile Python code string into executable JavaScript.
    * @param {string} pyCode 
-   * @returns {{jsCode: string, trackedList: string[]}}
+   * @returns {{jsCode: string, trackedList: string[], loopVars: string[]}}
    */
   transpile(pyCode) {
     const lines = pyCode.split('\n');
-    const jsLines = [];
+    const jsLines = [
+      'let __loop_1_iter = 0;',
+      'let __loop_2_iter = 0;',
+      'let __loop_3_iter = 0;'
+    ];
     const indentStack = [];
+    const loopStack = [];
     const declaredVars = new Set();
     const allAssignedVars = new Set();
+    const loopVars = [];
 
     // Pre-pass: collect variable names to track in scope snapshots
     for (const rawLine of lines) {
@@ -97,7 +103,10 @@ class NewtonPythonEngine {
         if ((line.startsWith('elif ') || line.startsWith('else:')) && indent === indentStack[indentStack.length - 1]) {
           break;
         }
-        indentStack.pop();
+        const popped = indentStack.pop();
+        if (loopStack.length > 0 && popped === loopStack[loopStack.length - 1].indent) {
+          loopStack.pop();
+        }
         jsLines.push('}');
       }
 
@@ -116,7 +125,7 @@ class NewtonPythonEngine {
             .map(v => `${JSON.stringify(v)}: (typeof ${v} !== 'undefined' ? ${v} : undefined)`)
             .join(', ');
 
-          return `__py_print([${cleanArgs.trim()}], ${JSON.stringify(sepArg)}, ${JSON.stringify(endArg)}, { ${snapshotProps} })`;
+          return `__py_print([${cleanArgs.trim()}], ${JSON.stringify(sepArg)}, ${JSON.stringify(endArg)}, { ${snapshotProps} }, { outer: __loop_1_iter, inner: __loop_2_iter, depth1: __loop_1_iter, depth2: __loop_2_iter, depth3: __loop_3_iter })`;
         });
       }
 
@@ -124,7 +133,16 @@ class NewtonPythonEngine {
       if (/^for\s+([a-zA-Z_]\w*)\s+in\s+range\((.*)\)\s*:$/.test(line)) {
         line = line.replace(/^for\s+([a-zA-Z_]\w*)\s+in\s+range\((.*)\)\s*:$/, (m, v, args) => {
           declaredVars.add(v);
-          return `for (let ${v} of __py_range(${args})) { __checkOps();`;
+          loopVars.push(v);
+          const depth = loopStack.length + 1;
+          loopStack.push({ indent, depth, varName: v });
+          if (depth === 1) {
+            return `for (let ${v} of __py_range(${args})) { __checkOps(); __loop_1_iter++; __loop_2_iter = 0; __loop_3_iter = 0;`;
+          } else if (depth === 2) {
+            return `for (let ${v} of __py_range(${args})) { __checkOps(); __loop_2_iter++; __loop_3_iter = 0;`;
+          } else {
+            return `for (let ${v} of __py_range(${args})) { __checkOps(); __loop_3_iter++;`;
+          }
         });
         opensBlock = true;
       }
@@ -132,13 +150,30 @@ class NewtonPythonEngine {
       else if (/^for\s+([a-zA-Z_]\w*)\s+in\s+(.*?)\s*:$/.test(line)) {
         line = line.replace(/^for\s+([a-zA-Z_]\w*)\s+in\s+(.*?)\s*:$/, (m, v, iter) => {
           declaredVars.add(v);
-          return `for (let ${v} of __py_iter(${iter})) { __checkOps();`;
+          loopVars.push(v);
+          const depth = loopStack.length + 1;
+          loopStack.push({ indent, depth, varName: v });
+          if (depth === 1) {
+            return `for (let ${v} of __py_iter(${iter})) { __checkOps(); __loop_1_iter++; __loop_2_iter = 0; __loop_3_iter = 0;`;
+          } else if (depth === 2) {
+            return `for (let ${v} of __py_iter(${iter})) { __checkOps(); __loop_2_iter++; __loop_3_iter = 0;`;
+          } else {
+            return `for (let ${v} of __py_iter(${iter})) { __checkOps(); __loop_3_iter++;`;
+          }
         });
         opensBlock = true;
       }
       // Convert while
       else if (/^while\s+(.*?)\s*:$/.test(line)) {
-        line = line.replace(/^while\s+(.*?)\s*:$/, 'while ($1) { __checkOps();');
+        const depth = loopStack.length + 1;
+        loopStack.push({ indent, depth });
+        if (depth === 1) {
+          line = line.replace(/^while\s+(.*?)\s*:$/, 'while ($1) { __checkOps(); __loop_1_iter++; __loop_2_iter = 0; __loop_3_iter = 0;');
+        } else if (depth === 2) {
+          line = line.replace(/^while\s+(.*?)\s*:$/, 'while ($1) { __checkOps(); __loop_2_iter++; __loop_3_iter = 0;');
+        } else {
+          line = line.replace(/^while\s+(.*?)\s*:$/, 'while ($1) { __checkOps(); __loop_3_iter++;');
+        }
         opensBlock = true;
       }
       // Convert if / elif / else
@@ -200,17 +235,17 @@ class NewtonPythonEngine {
       jsLines.push('}');
     }
 
-    return { jsCode: jsLines.join('\n'), trackedList };
+    return { jsCode: jsLines.join('\n'), trackedList, loopVars };
   }
 
   /**
    * Execute Python code and return stdout, print events with variable snapshots, and final scope.
    * @param {string} pyCode 
-   * @returns {{success: boolean, stdout: string, rawStdout: string, printEvents: Array, finalScope: Object, error?: string}}
+   * @returns {{success: boolean, stdout: string, rawStdout: string, printEvents: Array, finalScope: Object, loopVars: Array, error?: string}}
    */
   execute(pyCode) {
     try {
-      const { jsCode, trackedList } = this.transpile(pyCode);
+      const { jsCode, trackedList, loopVars } = this.transpile(pyCode);
       let stdout = '';
       const printEvents = [];
       let ops = 0;
@@ -220,10 +255,15 @@ class NewtonPythonEngine {
         if (++ops > maxOps) throw new Error('Maximum execution steps exceeded (infinite loop protection)');
       }
 
-      function __py_print(argsArray, sep = ' ', end = '\n', vars = {}) {
+      function __py_print(argsArray, sep = ' ', end = '\n', vars = {}, iters = {}) {
         const formatted = argsArray.map(a => String(a)).join(sep);
         stdout += formatted + end;
-        printEvents.push({ value: argsArray.length === 1 ? argsArray[0] : formatted, formatted, vars: { ...vars } });
+        printEvents.push({
+          value: argsArray.length === 1 ? argsArray[0] : formatted,
+          formatted,
+          vars: { ...vars },
+          iters: { ...iters }
+        });
       }
 
       function __py_range(start, stop, step = 1) {
@@ -255,7 +295,8 @@ class NewtonPythonEngine {
         stdout: stdout.trim(),
         rawStdout: stdout,
         printEvents,
-        finalScope
+        finalScope,
+        loopVars
       };
     } catch (err) {
       return {
@@ -264,15 +305,33 @@ class NewtonPythonEngine {
         rawStdout: '',
         printEvents: [],
         finalScope: {},
+        loopVars: [],
         error: err.message
       };
     }
   }
 
   /**
+   * Generate human-readable execution trace from print events.
+   * @param {Object} execResult 
+   * @returns {string}
+   */
+  generateTrace(execResult) {
+    if (!execResult || !execResult.printEvents || execResult.printEvents.length === 0) return '';
+    return execResult.printEvents.slice(0, 30).map((ev, idx) => {
+      const parts = [];
+      if (ev.iters?.outer) parts.push(`outer loop: ${ev.iters.outer}`);
+      if (ev.iters?.inner) parts.push(`inner loop: ${ev.iters.inner}`);
+      const varEntries = Object.entries(ev.vars || {}).filter(([k]) => !k.startsWith('__'));
+      if (varEntries.length > 0) parts.push(varEntries.map(([k, v]) => `${k}=${v}`).join(', '));
+      return `Step ${idx + 1} (${parts.join(' | ')}): prints "${ev.formatted}"`;
+    }).join('\n');
+  }
+
+  /**
    * Automatically detect intent and solve question deterministically.
    * @param {string} questionText 
-   * @returns {{solved: boolean, answer?: string, stdout?: string, type?: string, explanation?: string, reason?: string, error?: string}}
+   * @returns {{solved: boolean, answer?: string, stdout?: string, type?: string, explanation?: string, trace?: string, reason?: string, error?: string}}
    */
   solve(questionText) {
     try {
@@ -282,7 +341,91 @@ class NewtonPythonEngine {
       const execResult = this.execute(code);
       if (!execResult.success) return { solved: false, reason: `Execution failed: ${execResult.error}` };
 
-      // Case 1: "What will be the value of <var> when the value <val> is printed?"
+      const outerVar = execResult.loopVars?.[0] || 'i';
+      const innerVar = execResult.loopVars?.[1] || 'j';
+
+      // Case 1A: "What is the (last/first) number printed in the Mth outer loop and Nth inner loop?"
+      const loopOuterInnerMatch = questionText.match(/(?:(last|first)\s+)?(?:number\s+printed|what\s+is\s+(?:the\s+)?(?:last\s+)?number\s+printed|what\s+is\s+printed|what\s+will\s+be\s+printed)\s+in\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+outer\s+loop\s+and\s+(\d+)(?:st|nd|rd|th)?(?:\s*r)?(?:\s+inner)?/i) ||
+                                  questionText.match(/(?:(last|first)\s+)?(?:number\s+printed|what\s+is\s+(?:the\s+)?(?:last\s+)?number\s+printed|what\s+is\s+printed|what\s+will\s+be\s+printed)\s+in\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+inner\s+loop\s+and\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+outer/i);
+      if (loopOuterInnerMatch) {
+        const isReversed = questionText.includes('inner loop and');
+        const pos = (loopOuterInnerMatch[1] || 'last').toLowerCase();
+        const targetOuter = Number(isReversed ? loopOuterInnerMatch[3] : loopOuterInnerMatch[2]);
+        const targetInner = Number(isReversed ? loopOuterInnerMatch[2] : loopOuterInnerMatch[3]);
+
+        const matchingEvents = execResult.printEvents.filter(ev => {
+          const outerMatches = (ev.iters && ev.iters.outer === targetOuter) || (ev.vars && ev.vars[outerVar] == targetOuter);
+          const innerMatches = (ev.iters && ev.iters.inner === targetInner) || (ev.vars && ev.vars[innerVar] == targetInner);
+          return outerMatches && innerMatches;
+        });
+
+        if (matchingEvents.length > 0) {
+          const selected = pos === 'first' ? matchingEvents[0] : matchingEvents[matchingEvents.length - 1];
+          return {
+            solved: true,
+            answer: String(selected.value),
+            type: 'loop_outer_inner_print',
+            outerLoop: targetOuter,
+            innerLoop: targetInner,
+            position: pos,
+            stdout: execResult.stdout,
+            trace: this.generateTrace(execResult),
+            explanation: `In the ${targetOuter}th outer loop and ${targetInner}rd inner loop (${outerVar}=${targetOuter}, ${innerVar}=${targetInner}), the ${pos} printed number is ${selected.value}.`
+          };
+        }
+      }
+
+      // Case 1B: "What is the (last/first) number printed in the Mth outer loop?"
+      const outerOnlyMatch = questionText.match(/(?:(last|first)\s+)?number\s+printed\s+in\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+outer\s+loop(?!\s+and\s+\d)/i);
+      if (outerOnlyMatch) {
+        const pos = (outerOnlyMatch[1] || 'last').toLowerCase();
+        const targetOuter = Number(outerOnlyMatch[2]);
+
+        const matchingEvents = execResult.printEvents.filter(ev => {
+          return (ev.iters && ev.iters.outer === targetOuter) || (ev.vars && ev.vars[outerVar] == targetOuter);
+        });
+
+        if (matchingEvents.length > 0) {
+          const selected = pos === 'first' ? matchingEvents[0] : matchingEvents[matchingEvents.length - 1];
+          return {
+            solved: true,
+            answer: String(selected.value),
+            type: 'outer_loop_print',
+            outerLoop: targetOuter,
+            position: pos,
+            stdout: execResult.stdout,
+            trace: this.generateTrace(execResult),
+            explanation: `In the ${targetOuter}th outer loop (${outerVar}=${targetOuter}), the ${pos} printed number is ${selected.value}.`
+          };
+        }
+      }
+
+      // Case 1C: "What is the (last/first) number printed in the Nth inner loop?"
+      const innerOnlyMatch = questionText.match(/(?:(last|first)\s+)?number\s+printed\s+in\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+inner\s+loop(?!\s+and\s+\d)/i);
+      if (innerOnlyMatch) {
+        const pos = (innerOnlyMatch[1] || 'last').toLowerCase();
+        const targetInner = Number(innerOnlyMatch[2]);
+
+        const matchingEvents = execResult.printEvents.filter(ev => {
+          return (ev.iters && ev.iters.inner === targetInner) || (ev.vars && ev.vars[innerVar] == targetInner);
+        });
+
+        if (matchingEvents.length > 0) {
+          const selected = pos === 'first' ? matchingEvents[0] : matchingEvents[matchingEvents.length - 1];
+          return {
+            solved: true,
+            answer: String(selected.value),
+            type: 'inner_loop_print',
+            innerLoop: targetInner,
+            position: pos,
+            stdout: execResult.stdout,
+            trace: this.generateTrace(execResult),
+            explanation: `In the ${targetInner}th inner loop (${innerVar}=${targetInner}), the ${pos} printed number is ${selected.value}.`
+          };
+        }
+      }
+
+      // Case 1D: "What will be the value of <var> when the value <val> is printed?"
       const printWhenMatch = questionText.match(/value\s+of\s+([a-zA-Z_]\w*)\s+when\s+(?:the\s+value\s+)?([0-9a-zA-Z_\-]+)\s+is\s+printed/i);
       if (printWhenMatch) {
         const targetVar = printWhenMatch[1];
@@ -296,23 +439,54 @@ class NewtonPythonEngine {
             variable: targetVar,
             triggerValue: targetVal,
             stdout: execResult.stdout,
+            trace: this.generateTrace(execResult),
             explanation: `When ${targetVal} is printed, variable '${targetVar}' equals ${matchedEvent.vars[targetVar]}.`
           };
         }
       }
 
-      // Case 2: Output questions
+      // Case 1E: Total count of prints / executions
+      if (/(?:how\s+many\s+times|number\s+of\s+times)\s+(?:will\s+the\s+(?:inner\s+)?loop\s+execute|is\s+printed|is\s+(?:the\s+)?print\s+statement\s+executed|will\s+it\s+print)/i.test(questionText) && execResult.printEvents.length > 0) {
+        return {
+          solved: true,
+          answer: String(execResult.printEvents.length),
+          type: 'execution_count',
+          count: execResult.printEvents.length,
+          stdout: execResult.stdout,
+          trace: this.generateTrace(execResult),
+          explanation: `The print statement executes ${execResult.printEvents.length} times.`
+        };
+      }
+
+      // Case 1F: First or Last number printed overall
+      const globalPosMatch = questionText.match(/(?:what\s+is\s+(?:the\s+)?)?(last|first)\s+number\s+printed(?:\s+in\s+the\s+output|\?)?/i);
+      if (globalPosMatch && execResult.printEvents.length > 0 && !questionText.includes('outer') && !questionText.includes('inner')) {
+        const pos = globalPosMatch[1].toLowerCase();
+        const ev = pos === 'first' ? execResult.printEvents[0] : execResult.printEvents[execResult.printEvents.length - 1];
+        return {
+          solved: true,
+          answer: String(ev.value),
+          type: 'global_pos_print',
+          position: pos,
+          stdout: execResult.stdout,
+          trace: this.generateTrace(execResult),
+          explanation: `The ${pos} number printed is ${ev.value}.`
+        };
+      }
+
+      // Case 2: Standard Output questions
       if (/(?:output|what\s+(?:will\s+be\s+the\s+output|does\s+the\s+following\s+code\s+print|is\s+the\s+output|is\s+printed)|predict\s+the\s+output)/i.test(questionText) && execResult.stdout) {
         return {
           solved: true,
           answer: execResult.stdout,
           type: 'stdout',
           stdout: execResult.stdout,
+          trace: this.generateTrace(execResult),
           explanation: `The simulated code outputs: ${execResult.stdout}`
         };
       }
 
-      // Case 3: "What will be the final value of <var>?" / "What is the value of <var> after...?" / "Find value of <var>"
+      // Case 3: Final variable value
       const finalVarMatch = questionText.match(/(?:final\s+value\s+of|value\s+of|find\s+(?:the\s+)?value\s+of)\s+([a-zA-Z_]\w*)/i);
       if (finalVarMatch) {
         const targetVar = finalVarMatch[1];
@@ -323,6 +497,7 @@ class NewtonPythonEngine {
             type: 'final_variable',
             variable: targetVar,
             stdout: execResult.stdout,
+            trace: this.generateTrace(execResult),
             explanation: `At the end of execution, variable '${targetVar}' equals ${execResult.finalScope[targetVar]}.`
           };
         }
@@ -331,6 +506,7 @@ class NewtonPythonEngine {
       return {
         solved: false,
         stdout: execResult.stdout,
+        trace: this.generateTrace(execResult),
         finalScope: execResult.finalScope,
         reason: 'Question intent pattern did not match'
       };

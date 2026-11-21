@@ -1,17 +1,17 @@
 # Graph Report - assignments-extension  (2026-11-21)
 
 ## Corpus Check
-- 20 files · ~21,827 words
+- 20 files · ~23,460 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 2 file(s) not represented in the graph (top: (none) 1, .css 1)
 
 ## Summary
-- 157 nodes · 190 edges · 16 communities (12 shown, 4 thin omitted)
+- 158 nodes · 193 edges · 16 communities (12 shown, 4 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `754c182c`
+- Built from commit: `eed8abbe`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,15 +34,15 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `OllamaProvider` - 12 edges
-2. `NewtonPythonEngine` - 10 edges
+2. `NewtonPythonEngine` - 11 edges
 3. `NewtonPilot` - 10 edges
 4. `NewtonPilot` - 10 edges
 5. `runTests()` - 7 edges
-6. `renderQuestion()` - 5 edges
+6. `renderQuestion()` - 6 edges
 7. `How to Use` - 5 edges
 8. `How to Use` - 5 edges
-9. `icons` - 4 edges
-10. `action` - 4 edges
+9. `renderExplanation()` - 4 edges
+10. `checkCachedExplanation()` - 4 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `runTests()` --calls--> `OllamaProvider`  [EXTRACTED]
@@ -100,7 +100,7 @@ Cohesion: 0.25
 Nodes (8): 1. Log in to Newton School, 2. Operating Modes, 3. Diagram and Multimodal Image Questions, 4. Short Answer & Direct Output Questions, How to Use, Mode A: Question View & Local AI Concept Tutor, Mode B: Step-by-Step Semi-Autonomous Solving, Mode C: Fully Autonomous Speedrun Auto-Pilot
 
 ### Community 15 - "NewtonPythonEngine"
-Cohesion: 0.20
+Cohesion: 0.19
 Nodes (5): NewtonPythonEngine, __checkOps(), __py_range(), assert, runTests()
 
 ## Knowledge Gaps
@@ -116,7 +116,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `NewtonPilot` be split into smaller, more focused modules?**
   _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Why does `NewtonPilot` connect `NewtonPilot` to `2. Operating Modes`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Should `manifest.json` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
 - **Should `NewtonPilot` be split into smaller, more focused modules?**

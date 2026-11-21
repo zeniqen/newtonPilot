@@ -107,13 +107,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     (async () => {
       try {
+        const provider = new OllamaProvider({ host, model });
+        const pyEngine = provider.pythonEngine;
+        const pySol = pyEngine ? pyEngine.solve(questionData.questionText) : null;
+
         // Check cache if not forcing refresh
         if (!forceRefresh) {
           const cached = await chrome.storage.local.get([cacheKey]);
           if (cached && cached[cacheKey]) {
+            let explanation = cached[cacheKey];
+            // Cross-verify cached explanation with deterministic engine
+            if (pySol && pySol.solved && explanation.suggested_answer !== pySol.answer) {
+              console.warn(`[NewtonPilot] Cache contained outdated answer '${explanation.suggested_answer}'. Overriding with deterministic answer '${pySol.answer}'.`);
+              explanation = provider.reconcileExplanation(explanation, questionData);
+              await chrome.storage.local.set({ [cacheKey]: explanation });
+            }
             sendResponse({
               success: true,
-              explanation: cached[cacheKey],
+              explanation,
               fromCache: true,
               model
             });
@@ -122,7 +133,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         // Query Ollama in background (bypasses CORS restrictions)
-        const provider = new OllamaProvider({ host, model });
         const explanation = await provider.requestExplanation(questionData);
 
         // Cache explanation
@@ -144,6 +154,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
 
     return true; // Keep message channel open for async response
+  }
+
+  // Fast Deterministic Code Evaluation Check (0ms pre-fill)
+  if (message.action === 'CHECK_DETERMINISTIC_SOLUTION') {
+    try {
+      const questionText = message.questionText || '';
+      const pyEngine = new NewtonPythonEngine();
+      const solution = pyEngine.solve(questionText);
+      sendResponse({ success: true, solution });
+    } catch (err) {
+      sendResponse({ success: false, error: err.message });
+    }
+    return false;
   }
 
   // 4. Invalidate / Clear Explanation Cache

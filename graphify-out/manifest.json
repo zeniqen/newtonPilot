@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/background/service-worker.js": {
-    "mtime": 1795255450.8917246,
-    "seen": 1795255644.441157,
-    "ast_hash": "697a44a69d0310af2dd85c0b59f44a2c",
+    "mtime": 1795257649.3753934,
+    "seen": 1795257727.73732,
+    "ast_hash": "a96f7e248474cc946fb2292d67f304fc",
     "semantic_hash": ""
   },
   "newtonpilot/manifest.json": {
@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.js": {
-    "mtime": 1795214917.493388,
-    "seen": 1795215047.623415,
-    "ast_hash": "e47443b4037a5823db518cac36b686ed",
+    "mtime": 1795257667.2144084,
+    "seen": 1795257727.737324,
+    "ast_hash": "e96d33a24505359f24770ad634387775",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/content.js": {
@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/ollama-provider.js": {
-    "mtime": 1795255591.638573,
-    "seen": 1795255644.4411662,
-    "ast_hash": "97fee84297a39e407bc6f559bc50ad14",
+    "mtime": 1795257632.9973683,
+    "seen": 1795257727.737328,
+    "ast_hash": "e57f42fafa8c897051c81bc7a06afc01",
     "semantic_hash": ""
   },
   "newtonpilot/tests/extractor.test.js": {
@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/tests/ollama-provider.test.js": {
-    "mtime": 1795255470.9865649,
-    "seen": 1795255644.4411688,
-    "ast_hash": "3d7a4aedf544d0eb7bd79cb644d9b562",
+    "mtime": 1795257705.9422736,
+    "seen": 1795257727.73733,
+    "ast_hash": "e02a02d856ec8d8e33a2ae6a0c60d33c",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/agent.js": {
@@ -138,15 +138,15 @@
     "semantic_hash": ""
   },
   "newtonpilot/services/python-engine.js": {
-    "mtime": 1795255633.430199,
-    "seen": 1795255644.441167,
-    "ast_hash": "38353e6827c5c6bdbb92fc63dd20ddbe",
+    "mtime": 1795257526.3138068,
+    "seen": 1795257727.737328,
+    "ast_hash": "fd2ca1ddfdc6086b7858834fa427f98c",
     "semantic_hash": ""
   },
   "newtonpilot/tests/python-engine.test.js": {
-    "mtime": 1795255482.070717,
-    "seen": 1795255644.44117,
-    "ast_hash": "5636f2ae1b57ffdb3688f35e6c04e817",
+    "mtime": 1795257686.44894,
+    "seen": 1795257727.737331,
+    "ast_hash": "397bee658206f8fc4cdd9997c64cd8e7",
     "semantic_hash": ""
   }
 }

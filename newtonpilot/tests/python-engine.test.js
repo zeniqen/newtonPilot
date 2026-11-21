@@ -76,6 +76,78 @@ while x > 0:
     console.log('✓ Test 4: Infinite loop protection passed');
   }
 
+  // Test 5: Outer & Inner loop iteration query (Question 2 from user screenshot)
+  {
+    const q5 = `Pattern printing using loops - Revision
+QUESTION 2/5
+What is the last number printed in the 4th outer loop and 3rd inner loop?
+
+c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")`;
+
+    const res = engine.solve(q5);
+    assert.strictEqual(res.solved, true, 'Should solve outer and inner loop question');
+    assert.strictEqual(res.answer, '21', 'At outer=4, inner=3: 4 + 3 + 14 = 21');
+    assert.strictEqual(res.type, 'loop_outer_inner_print');
+    assert.ok(res.trace.includes('outer loop: 4 | inner loop: 3'), 'Trace should include loop iteration');
+    console.log('✓ Test 5: Outer & Inner loop query (4th outer, 3rd inner -> 21) passed');
+  }
+
+  // Test 6: Resilient to visually truncated prompt from webpage (... and 3r)
+  {
+    const q6 = `What is the last number printed in the 4th outer loop and 3r
+
+c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")`;
+
+    const res = engine.solve(q6);
+    assert.strictEqual(res.solved, true, 'Should solve truncated question');
+    assert.strictEqual(res.answer, '21');
+    console.log('✓ Test 6: Visually truncated prompt resilience passed');
+  }
+
+  // Test 7: Outer loop only query
+  {
+    const q7 = `What is the last number printed in the 4th outer loop?
+
+c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")`;
+
+    const res = engine.solve(q7);
+    assert.strictEqual(res.solved, true);
+    assert.strictEqual(res.answer, '23', 'Last number in 4th outer loop is 23');
+    console.log('✓ Test 7: Outer loop only query (4th outer -> 23) passed');
+  }
+
+  // Test 8: Total print execution count
+  {
+    const q8 = `How many times will the inner loop execute?
+
+c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")`;
+
+    const res = engine.solve(q8);
+    assert.strictEqual(res.solved, true);
+    assert.strictEqual(res.answer, '14', 'Total executions = 2 + 3 + 4 + 5 = 14');
+    console.log('✓ Test 8: Execution count query passed');
+  }
+
   console.log('\nAll NewtonPythonEngine tests passed successfully!');
 }
 

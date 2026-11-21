@@ -28,7 +28,7 @@ class OllamaProvider {
     this.host = (config.host || 'http://localhost:11434').replace(/\/+$/, '');
     this.model = config.model || 'qwen2.5-coder:7b';
     this.temperature = config.temperature ?? 0.0;
-    this.timeoutMs = config.timeoutMs || 60000;
+    this.timeoutMs = config.timeoutMs || 120000;
     this.isReady = false;
     this.pythonEngine = config.pythonEngine || (PythonEngineClass ? new PythonEngineClass() : null);
   }
@@ -274,7 +274,8 @@ Return your response in STRICT valid JSON matching this schema:
       console.log(`[OllamaProvider] NewtonPythonEngine verified solution: answer="${pySol.answer}" (${pySol.explanation})`);
       if (isShortAnswer) {
         suggestedAnswer = pySol.answer;
-        reasoning = `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\n${reasoning}`;
+        const traceText = pySol.trace ? `\n\nExecution Walkthrough:\n${pySol.trace}` : '';
+        reasoning = `[Deterministic Python Engine Verified]: ${pySol.explanation}${traceText}\n\n${reasoning}`;
       } else {
         const matchedOpt = (questionData?.options || []).find(o => {
           const t = String(o.text || '').trim();
@@ -284,7 +285,8 @@ Return your response in STRICT valid JSON matching this schema:
         });
         if (matchedOpt) {
           suggestedAnswer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
-          reasoning = `[Deterministic Python Engine Verified]: Option ${matchedOpt.label} is mathematically verified. ${pySol.explanation}\n\n${reasoning}`;
+          const traceText = pySol.trace ? `\n\nExecution Walkthrough:\n${pySol.trace}` : '';
+          reasoning = `[Deterministic Python Engine Verified]: Option ${matchedOpt.label} is mathematically verified. ${pySol.explanation}${traceText}\n\n${reasoning}`;
         }
       }
     }
@@ -377,6 +379,10 @@ Return your response in STRICT valid JSON matching this schema:
    * @returns {Promise<{suggested_answer: string, concept_summary: string, reasoning: string, options_analysis: Array, confidence: number}>}
    */
   async requestExplanation(questionData) {
+    // 0. Pre-solve deterministically via NewtonPythonEngine if applicable
+    const questionText = questionData?.questionText || '';
+    const pySol = this.pythonEngine ? this.pythonEngine.solve(questionText) : null;
+
     // 1. Process and resolve images
     const rawImages = questionData?.images || [];
     const base64Images = [];
@@ -426,8 +432,19 @@ Return your response in STRICT valid JSON matching this schema:
       });
     } catch (fetchErr) {
       clearTimeout(timeoutId);
+      // Graceful fallback to deterministic engine on network failure or timeout
+      if (pySol && pySol.solved) {
+        console.warn(`[OllamaProvider] Ollama request failed (${fetchErr.message}), falling back to deterministic Python engine solution.`);
+        return {
+          suggested_answer: pySol.answer,
+          concept_summary: 'Deterministic Python Engine Verification',
+          reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+          options_analysis: [],
+          confidence: 1.0
+        };
+      }
       if (fetchErr.name === 'AbortError') {
-        throw new Error(`Request timed out after ${this.timeoutMs / 1000}s while waiting for model ${this.model}`);
+        throw new Error(`Request timed out after ${this.timeoutMs / 1000}s while waiting for model ${this.model}. Ensure Ollama is running (ollama serve).`);
       }
       throw new Error(`Failed to reach Ollama at ${this.host}: ${fetchErr.message}`);
     }
@@ -436,6 +453,17 @@ Return your response in STRICT valid JSON matching this schema:
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => '');
+      // Graceful fallback to deterministic engine on HTTP 500 / 503 from Ollama
+      if (pySol && pySol.solved) {
+        console.warn(`[OllamaProvider] Ollama returned HTTP ${response.status}, falling back to deterministic Python engine solution.`);
+        return {
+          suggested_answer: pySol.answer,
+          concept_summary: 'Deterministic Python Engine Verification',
+          reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+          options_analysis: [],
+          confidence: 1.0
+        };
+      }
       throw new Error(`Ollama generation failed (HTTP ${response.status}): ${errBody || response.statusText}`);
     }
 

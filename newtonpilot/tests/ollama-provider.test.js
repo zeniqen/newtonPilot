@@ -284,6 +284,36 @@ async function runTests() {
     console.log('✓ Test 10: Deterministic NewtonPythonEngine overrides hallucinated 32 with 37');
   }
 
+  // Test 11: Ollama timeout / HTTP 500 falls back to deterministic engine gracefully
+  {
+    const provider = new OllamaProvider({ timeoutMs: 50 });
+    const originalFetch = global.fetch;
+
+    // Simulate Ollama timing out or throwing AbortError
+    global.fetch = async () => {
+      const abortErr = new Error('The operation was aborted');
+      abortErr.name = 'AbortError';
+      throw abortErr;
+    };
+
+    const q2 = {
+      questionText: 'Pattern printing using loops - Revision\nQUESTION 2/5\nWhat is the last number printed in the 4th outer loop and 3rd inner loop?\n\nc = 1\nfor i in range(1, 5):\n    for j in range(1, i + 2):\n        if (i * j) % 2 == 1:\n            c += (i * j)\n        print(i + j + c, end=" ")',
+      format: 'short_answer',
+      options: [],
+      hasTextInput: true
+    };
+
+    try {
+      const res = await provider.requestExplanation(q2);
+      assert.strictEqual(res.suggested_answer, '21', 'Must return 21 despite Ollama timeout');
+      assert.strictEqual(res.confidence, 1.0);
+      assert.ok(res.reasoning.includes('Deterministic Python Engine Verified'));
+      console.log('✓ Test 11: Ollama timeout graceful fallback to deterministic engine (21) passed');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  }
+
   console.log('\nAll OllamaProvider tests passed successfully!');
 }
 

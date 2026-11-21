@@ -510,8 +510,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Check for cached AI explanation on active question
-    checkCachedExplanation(data.questionId, aiModelSelect.value);
+    // Fast deterministic pre-solve: check if deterministic engine solves question immediately
+    if (data.questionText) {
+      chrome.runtime.sendMessage({
+        action: 'CHECK_DETERMINISTIC_SOLUTION',
+        questionText: data.questionText
+      }, (res) => {
+        if (res && res.success && res.solution && res.solution.solved) {
+          const pySol = res.solution;
+          renderExplanation({
+            suggested_answer: pySol.answer,
+            concept_summary: 'Deterministic Python Engine Verification',
+            reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+            options_analysis: [],
+            confidence: 1.0
+          });
+        } else {
+          // Check for cached AI explanation on active question
+          checkCachedExplanation(data.questionId, aiModelSelect.value);
+        }
+      });
+    } else {
+      checkCachedExplanation(data.questionId, aiModelSelect.value);
+    }
 
     // Diagnostics
     diagUrl.textContent = data.url || '-';
