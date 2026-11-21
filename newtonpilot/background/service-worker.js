@@ -108,8 +108,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         const provider = new OllamaProvider({ host, model });
-        const pyEngine = provider.pythonEngine;
-        const pySol = pyEngine ? pyEngine.solve(questionData.questionText) : null;
+        const pyEngine = new NewtonPythonEngine();
+        const pySol = pyEngine.solve(questionData.questionText);
 
         // 1. FAST PATH: If deterministic engine solves it, return IMMEDIATELY (0ms, no network delay/timeouts)
         if (pySol && pySol.solved) {
@@ -168,6 +168,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       } catch (err) {
         console.error('[NewtonPilot] AI explanation generation failed:', err);
+        // Safety Fallback: try solving deterministically if Ollama failed or timed out
+        try {
+          const pyEngine = new NewtonPythonEngine();
+          const pySol = pyEngine.solve(questionData.questionText);
+          if (pySol && pySol.solved) {
+            console.log(`[NewtonPilot] Fallback deterministic solution on error: "${pySol.answer}"`);
+            let explanation = {
+              suggested_answer: pySol.answer,
+              concept_summary: 'Deterministic Python Engine Verification',
+              reasoning: `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\nExecution Walkthrough:\n${pySol.trace || pySol.stdout}`,
+              options_analysis: [],
+              confidence: 1.0
+            };
+            if (questionData.options && questionData.options.length > 0) {
+              const matchedOpt = questionData.options.find(o => {
+                const t = String(o.text || '').trim();
+                return t === pySol.answer || t === `Option ${pySol.answer}` || new RegExp(`\\b${pySol.answer}\\b`).test(t);
+              });
+              if (matchedOpt) {
+                explanation.suggested_answer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
+              }
+            }
+            await chrome.storage.local.set({ [cacheKey]: explanation });
+            sendResponse({
+              success: true,
+              explanation,
+              fromCache: false,
+              model: 'Deterministic Engine'
+            });
+            return;
+          }
+        } catch (_) {}
+
         sendResponse({
           success: false,
           error: err.message || 'Failed to generate explanation from local Ollama model.'

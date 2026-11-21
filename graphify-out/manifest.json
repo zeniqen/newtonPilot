@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/background/service-worker.js": {
-    "mtime": 1795259100.5378392,
-    "seen": 1795259173.682584,
-    "ast_hash": "5190e91015bb4500d43b538200ed9981",
+    "mtime": 1795260823.160085,
+    "seen": 1795260934.620034,
+    "ast_hash": "b7db3022ef3e35759e8abc5a6dafa010",
     "semantic_hash": ""
   },
   "newtonpilot/manifest.json": {
@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/popup/popup.js": {
-    "mtime": 1795259138.7687287,
-    "seen": 1795259173.6825888,
-    "ast_hash": "977f34b903d6d4d893e1ef0cb4a71bcb",
+    "mtime": 1795259592.2527862,
+    "seen": 1795260934.620039,
+    "ast_hash": "a656f4995444a9d8dec5573cc880ee32",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/content.js": {
@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/scripts/extractor.js": {
-    "mtime": 1795245406.2678816,
-    "seen": 1795245553.827147,
-    "ast_hash": "87aa847323e81386fdee4b01a060f3cc",
+    "mtime": 1795260789.9504876,
+    "seen": 1795260934.620043,
+    "ast_hash": "2a62dbd0fba6d0522faf6dc982aa9a14",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/observer.js": {
@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/tests/extractor.test.js": {
-    "mtime": 1795245520.139914,
-    "seen": 1795245553.82715,
-    "ast_hash": "db89cc0a80a06dfd5a2c0946656e71e2",
+    "mtime": 1795260880.7347555,
+    "seen": 1795260934.620047,
+    "ast_hash": "b5f22857cabbbc63b753a687d6deb7bd",
     "semantic_hash": ""
   },
   "newtonpilot/utils/messaging.js": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/scripts/agent.js": {
-    "mtime": 1795214878.89782,
-    "seen": 1795215047.623416,
-    "ast_hash": "507b9380d3277e19c174958691a11e61",
+    "mtime": 1795260908.3948793,
+    "seen": 1795260934.62004,
+    "ast_hash": "4ba4aadcde71420c581bc289ce573f96",
     "semantic_hash": ""
   },
   "newtonpilot/scripts/executor.js": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "newtonpilot/tests/agent.test.js": {
-    "mtime": 1795212930.7038083,
-    "seen": 1795212977.319892,
-    "ast_hash": "89fa3c672b56497d972e6e9a93b48448",
+    "mtime": 1795260920.0436225,
+    "seen": 1795260934.6200461,
+    "ast_hash": "855d6c98b51344fe9300708705da8bee",
     "semantic_hash": ""
   },
   "README.md": {

@@ -38,10 +38,15 @@ const NewtonAgent = (() => {
 
   function broadcastState() {
     if (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        action: 'AGENT_STATE_UPDATED',
-        payload: getStatus()
-      }).catch(() => {});
+      try {
+        const p = chrome.runtime.sendMessage({
+          action: 'AGENT_STATE_UPDATED',
+          payload: getStatus()
+        });
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {});
+        }
+      } catch (_) {}
     }
   }
 
@@ -93,33 +98,72 @@ const NewtonAgent = (() => {
       }
     }
 
-    // 2. Reason & Decide via Ollama
-    lastAction = `Reasoning with ${selectedModel}...`;
-    broadcastState();
-
-    let explanation;
+    // 2. Deterministic Engine Pre-Check (Fast-path 0ms verification)
+    let explanation = null;
     try {
-      const res = await new Promise((resolve, reject) => {
-        if (typeof chrome === 'undefined' || !chrome?.runtime?.sendMessage) {
-          return reject(new Error('Extension runtime unavailable'));
-        }
+      const fastSol = await new Promise((resolve) => {
+        if (typeof chrome === 'undefined' || !chrome?.runtime?.sendMessage) return resolve(null);
         chrome.runtime.sendMessage({
-          action: 'REQUEST_AI_EXPLANATION',
-          payload: {
-            questionData,
-            model: selectedModel,
-            forceRefresh: false
+          action: 'CHECK_DETERMINISTIC_SOLUTION',
+          questionText: questionData.questionText
+        }, (res) => {
+          if (res?.success && res.solution?.solved) {
+            resolve(res.solution);
+          } else {
+            resolve(null);
           }
-        }, (response) => {
-          if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-          if (!response || !response.success) return reject(new Error(response?.error || 'AI generation failed'));
-          resolve(response.explanation);
         });
       });
-      explanation = res;
-    } catch (err) {
-      log(`Reasoning failed: ${err.message}`, 'error');
-      return { success: false, error: err.message };
+
+      if (fastSol) {
+        log(`Deterministic Python Engine Solved: "${fastSol.answer}" (${fastSol.explanation})`, 'success');
+        explanation = {
+          suggested_answer: fastSol.answer,
+          concept_summary: 'Deterministic Python Engine Verification',
+          reasoning: `[Deterministic Python Engine Verified]: ${fastSol.explanation}\n\nExecution Walkthrough:\n${fastSol.trace || fastSol.stdout}`,
+          options_analysis: [],
+          confidence: 1.0
+        };
+        if (questionData.options && questionData.options.length > 0) {
+          const matchedOpt = questionData.options.find(o => {
+            const t = String(o.text || '').trim();
+            return t === fastSol.answer || t === `Option ${fastSol.answer}` || new RegExp(`\\b${fastSol.answer}\\b`).test(t);
+          });
+          if (matchedOpt) {
+            explanation.suggested_answer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2B. If not solved deterministically, Reason & Decide via Ollama
+    if (!explanation) {
+      lastAction = `Reasoning with ${selectedModel}...`;
+      broadcastState();
+
+      try {
+        const res = await new Promise((resolve, reject) => {
+          if (typeof chrome === 'undefined' || !chrome?.runtime?.sendMessage) {
+            return reject(new Error('Extension runtime unavailable'));
+          }
+          chrome.runtime.sendMessage({
+            action: 'REQUEST_AI_EXPLANATION',
+            payload: {
+              questionData,
+              model: selectedModel,
+              forceRefresh: false
+            }
+          }, (response) => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            if (!response || !response.success) return reject(new Error(response?.error || 'AI generation failed'));
+            resolve(response.explanation);
+          });
+        });
+        explanation = res;
+      } catch (err) {
+        log(`Reasoning failed: ${err.message}`, 'error');
+        return { success: false, error: err.message };
+      }
     }
 
     const suggested = explanation.suggested_answer || '';

@@ -10,8 +10,14 @@ function createMockElement(tag, attrs = {}, text = '', children = []) {
   return {
     tagName: tag.toUpperCase(),
     attributes: attrs,
-    innerText: text,
-    textContent: text,
+    get innerText() {
+      if (text) return text;
+      return children.map(c => c.innerText).filter(Boolean).join('\n');
+    },
+    get textContent() {
+      if (text) return text;
+      return children.map(c => c.textContent).filter(Boolean).join('\n');
+    },
     children: children,
     classList: {
       contains: (cls) => (attrs.class || '').split(' ').includes(cls)
@@ -44,6 +50,10 @@ function createMockElement(tag, attrs = {}, text = '', children = []) {
           if (sel.includes('[class*="question" i]') && (child.attributes.class || '').toLowerCase().includes('question')) match = true;
           if (sel.includes('[class*="option" i]') && (child.attributes.class || '').toLowerCase().includes('option')) match = true;
           if (sel.includes('[class*="progress" i]') && (child.attributes.class || '').toLowerCase().includes('progress')) match = true;
+          if (sel.includes('[class*="editor" i]') && (child.attributes.class || '').toLowerCase().includes('editor')) match = true;
+          if (sel.includes('[class*="code" i]') && (child.attributes.class || '').toLowerCase().includes('code')) match = true;
+          if (sel.includes('code') && child.tagName === 'CODE') match = true;
+          if (sel.includes('pre') && child.tagName === 'PRE') match = true;
           if (sel.startsWith('label[for=') && child.tagName === 'LABEL' && child.attributes.for === sel.match(/for="([^"]+)"/)?.[1]) match = true;
           if (match) results.push(child);
           walk(child);
@@ -280,6 +290,58 @@ for i in range(1, 6):
   assert.ok(result.questionText.includes('        print(i * j + v, end=" ")'), 'Print statement must preserve 8-space indentation');
   assert.ok(!result.questionText.includes('v = 1\n\nfor i'), 'Code lines should not have artificial double blank lines');
   console.log('✓ Test 6: Python nested loop indentation preservation passed');
+}
+
+// Test Case 7: Question 2/5 with variable c and sibling code container
+{
+  const titleText = `Pattern printing using loops - Revision
+QUESTION 2/5
+Mark for review
+Clear Selection
+What is the last number printed in the 4th outer loop and 3rd inner loop?`;
+
+  const codeText = `c = 1
+for i in range(1, 5):
+    for j in range(1, i + 2):
+        if (i * j) % 2 == 1:
+            c += (i * j)
+        print(i + j + c, end=" ")`;
+
+  const qHeading = createMockElement('div', { class: 'question-title' }, titleText);
+  const qCode = createMockElement('div', { class: 'code-editor' }, codeText);
+  const textInput = createMockElement('input', {
+    type: 'text',
+    placeholder: 'Enter your answer here',
+    class: 'answer-input'
+  });
+
+  const qContainer = createMockElement('div', { class: 'assessment-question' }, '', [qHeading, qCode, textInput]);
+  qHeading.parentElement = qContainer;
+  qCode.parentElement = qContainer;
+  textInput.parentElement = qContainer;
+
+  const mockDoc = createMockElement('body', {}, `${titleText}\n\n${codeText}`, [qContainer]);
+  qContainer.parentElement = mockDoc;
+
+  global.document = mockDoc;
+  const result = NewtonExtractor.extractCurrentQuestion();
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.questionNumber, 2);
+  assert.strictEqual(result.totalQuestions, 5);
+  assert.ok(result.questionText.includes('What is the last number printed in the 4th outer loop and 3rd inner loop?'));
+  assert.ok(result.questionText.includes('c = 1'), 'Must include code starting with c = 1');
+  assert.ok(result.questionText.includes('c += (i * j)'), 'Must not truncate at variable c');
+  assert.ok(result.questionText.includes('print(i + j + c, end=" ")'));
+
+  // Test deterministic solve directly on extracted questionText
+  const PythonEngineModule = require('../services/python-engine.js');
+  const NewtonPythonEngine = PythonEngineModule.default || PythonEngineModule;
+  const engine = new NewtonPythonEngine();
+  const sol = engine.solve(result.questionText);
+  assert.strictEqual(sol.solved, true, 'Deterministic engine must solve extracted question text');
+  assert.strictEqual(sol.answer, '21', 'Answer must be exactly 21');
+  console.log('✓ Test 7: Sibling code container with variable c and deterministic solve (21) passed');
 }
 
 console.log('All extractor unit tests passed successfully!');

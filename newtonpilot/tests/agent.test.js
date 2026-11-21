@@ -96,6 +96,78 @@ async function runTests() {
     console.log('✓ Test 4: fillTextInput synthetic event handling passed');
   }
 
+  // Test 5: executeStep deterministic engine fast-path (fills 21 without Ollama)
+  {
+    let filledValue = '';
+    const mockInput = {
+      tagName: 'INPUT',
+      getAttribute: (attr) => attr === 'placeholder' ? 'Enter your answer here' : null,
+      offsetWidth: 200,
+      offsetHeight: 40,
+      focus: () => {},
+      scrollIntoView: () => {},
+      dispatchEvent: () => {},
+      set value(v) { filledValue = v; },
+      get value() { return filledValue; }
+    };
+
+    global.document = {
+      querySelector: (selector) => selector.includes('data-newton-input') ? mockInput : null,
+      querySelectorAll: () => [mockInput],
+      body: { querySelectorAll: () => [mockInput] }
+    };
+
+    // Mock chrome.runtime.sendMessage to return deterministic solution for CHECK_DETERMINISTIC_SOLUTION
+    global.chrome = {
+      runtime: {
+        sendMessage: (msg, cb) => {
+          if (msg.action === 'CHECK_DETERMINISTIC_SOLUTION') {
+            if (typeof cb === 'function') {
+              cb({
+                success: true,
+                solution: {
+                  solved: true,
+                  answer: '21',
+                  explanation: 'In the 4th outer loop and 3rd inner loop, the last printed number is 21.'
+                }
+              });
+            }
+          } else if (msg.action === 'REQUEST_AI_EXPLANATION') {
+            // Should NOT be called when deterministic engine solves it!
+            if (typeof cb === 'function') {
+              cb({ success: false, error: 'Ollama timed out (should not be reached)' });
+            }
+          } else if (typeof cb === 'function') {
+            cb({});
+          }
+          return Promise.resolve({});
+        }
+      }
+    };
+
+    // Mock window.NewtonExtractor
+    global.window = {
+      ...global.window,
+      NewtonExtractor: {
+        extractCurrentQuestion: () => ({
+          success: true,
+          questionNumber: 2,
+          totalQuestions: 5,
+          format: 'short_answer',
+          hasTextInput: true,
+          questionText: 'What is the last number printed in the 4th outer loop and 3rd inner loop?\n\nc = 1...'
+        })
+      },
+      NewtonExecutor: NewtonExecutor
+    };
+
+    const res = await NewtonAgent.executeStep(false);
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(res.answer, '21', 'Agent must use deterministic answer 21');
+    assert.strictEqual(filledValue, '21', 'Input must be filled with 21');
+    console.log('✓ Test 5: executeStep deterministic fast-path without Ollama passed');
+  }
+
   console.log('\nAll Autonomous Agent tests passed successfully!');
 }
 

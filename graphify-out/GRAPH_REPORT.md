@@ -1,7 +1,7 @@
 # Graph Report - assignments-extension  (2026-11-21)
 
 ## Corpus Check
-- 20 files · ~24,024 words
+- 20 files · ~25,002 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 2 file(s) not represented in the graph (top: (none) 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `55dd6261`
+- Built from commit: `bad4383e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,10 +45,10 @@
 10. `checkCachedExplanation()` - 4 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `runTests()` --calls--> `OllamaProvider`  [EXTRACTED]
-  newtonpilot/tests/ollama-provider.test.js → newtonpilot/services/ollama-provider.js
 - `runTests()` --calls--> `NewtonPythonEngine`  [EXTRACTED]
   newtonpilot/tests/python-engine.test.js → newtonpilot/services/python-engine.js
+- `runTests()` --calls--> `OllamaProvider`  [EXTRACTED]
+  newtonpilot/tests/ollama-provider.test.js → newtonpilot/services/ollama-provider.js
 
 ## Import Cycles
 - None detected.
@@ -68,7 +68,7 @@ Cohesion: 0.22
 Nodes (8): author, description, keywords, license, name, scripts, test, version
 
 ### Community 3 - "agent.test.js"
-Cohesion: 0.38
+Cohesion: 0.33
 Nodes (3): NewtonAgent, NewtonExecutor, assert
 
 ### Community 4 - "popup.js"
@@ -80,12 +80,12 @@ Cohesion: 0.12
 Nodes (15): 1. Ollama Connection Error (`HTTP 403 Forbidden` or `Offline`), 2. "No Question Detected", 3. Agent Clicks the Wrong Option, Architecture Overview, Directory Structure, Disclaimer, Keyboard Shortcuts, NewtonPilot (+7 more)
 
 ### Community 6 - "OllamaProvider"
-Cohesion: 0.24
+Cohesion: 0.29
 Nodes (3): OllamaProvider, assert, runTests()
 
 ### Community 7 - "extractor.test.js"
-Cohesion: 0.25
-Nodes (5): NewtonExtractor, assert, createMockElement(), walk(), assert
+Cohesion: 0.40
+Nodes (4): NewtonExtractor, assert, createMockElement(), walk()
 
 ### Community 12 - "commands"
 Cohesion: 0.28
@@ -100,8 +100,8 @@ Cohesion: 0.25
 Nodes (8): 1. Log in to Newton School, 2. Operating Modes, 3. Diagram and Multimodal Image Questions, 4. Short Answer & Direct Output Questions, How to Use, Mode A: Question View & Local AI Concept Tutor, Mode B: Step-by-Step Semi-Autonomous Solving, Mode C: Fully Autonomous Speedrun Auto-Pilot
 
 ### Community 15 - "NewtonPythonEngine"
-Cohesion: 0.14
-Nodes (4): NewtonPythonEngine, __checkOps(), __py_range(), runTests()
+Cohesion: 0.11
+Nodes (5): NewtonPythonEngine, __checkOps(), __py_range(), assert, runTests()
 
 ## Knowledge Gaps
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
@@ -109,8 +109,8 @@ Nodes (4): NewtonPythonEngine, __checkOps(), __py_range(), runTests()
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `NewtonPythonEngine` connect `NewtonPythonEngine` to `OllamaProvider`, `extractor.test.js`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Why does `OllamaProvider` connect `OllamaProvider` to `NewtonPythonEngine`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `runTests()` (e.g. with `.buildPrompt()` and `.cleanJsonResponse()`) actually correct?**
   _`runTests()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Should `NewtonPilot` be split into smaller, more focused modules?**
@@ -122,4 +122,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `NewtonPilot` be split into smaller, more focused modules?**
   _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Should `NewtonPythonEngine` be split into smaller, more focused modules?**
-  _Cohesion score 0.1368421052631579 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11384615384615385 - nodes in this community are weakly interconnected._

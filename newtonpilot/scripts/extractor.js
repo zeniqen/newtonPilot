@@ -82,8 +82,10 @@ const NewtonExtractor = (() => {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      // Stop taking question statement lines if options block is reached
-      if (/^[A-D]$/i.test(trimmed) || /^[A-D][\.\)\:\-]\s+/i.test(trimmed)) {
+      // Stop taking question statement lines if options block is reached (e.g. "A. Option" or "A) Option")
+      // Never break on code syntax (like c = 1, c += ...) or lowercase single letters
+      const isCodeSyntax = /[=\+\-\*\/\%\(\)\:\<\>\[\]]|^(?:for|while|if|def|print|return|import)\b/.test(trimmed);
+      if (!isCodeSyntax && (/^[A-D][\.\)\:\-]\s+/.test(trimmed) || (/^[A-D]$/.test(trimmed) && filtered.length > 0))) {
         break;
       }
       if (ignorePatterns.some(pat => pat.test(trimmed))) continue;
@@ -301,12 +303,15 @@ const NewtonExtractor = (() => {
     if (questionEl) {
       text = cleanCodePreservingText(questionEl.innerText || questionEl.textContent);
       
-      // If container has a code block (like <pre>, <code>, or snippet container) outside questionEl, append it
-      const codeBlock = container.querySelector('pre, code, [class*="code-block" i], [class*="snippet" i]');
-      if (codeBlock && !questionEl.contains(codeBlock) && isVisible(codeBlock)) {
-        const codeText = cleanCodePreservingText(codeBlock.innerText || codeBlock.textContent);
-        if (codeText && !text.includes(codeText)) {
-          text = `${text}\n\n${codeText}`;
+      // If container has code elements outside questionEl, append them
+      const codeSelectors = 'pre, code, [class*="code" i], [class*="snippet" i], [class*="editor" i], [class*="syntax" i], [class*="highlight" i], [class*="monaco" i], [class*="prism" i], [class*="ace" i], [class*="mono" i], [style*="monospace" i]';
+      const codeBlocks = Array.from(container.querySelectorAll(codeSelectors)).filter(isVisible);
+      for (const cb of codeBlocks) {
+        if (!questionEl.contains(cb)) {
+          const codeText = cleanCodePreservingText(cb.innerText || cb.textContent);
+          if (codeText && !text.includes(codeText)) {
+            text = `${text}\n\n${codeText}`;
+          }
         }
       }
 
@@ -321,6 +326,14 @@ const NewtonExtractor = (() => {
       if (paragraphs.length > 0) {
         text = cleanCodePreservingText(paragraphs[0].innerText || paragraphs[0].textContent);
       }
+    }
+
+    // Safety Fallback: If container itself contains Python code patterns (e.g. for loop, def, c = 1, print)
+    // but the extracted text missed it, extract directly from container text
+    const hasPythonCode = /(?:for\s+\w+\s+in|while\s+|def\s+\w+|print\s*\(|[a-zA-Z_]\w*\s*=\s*\d+)/;
+    const containerText = cleanCodePreservingText(container.innerText || '');
+    if (hasPythonCode.test(containerText) && !hasPythonCode.test(text)) {
+      text = containerText;
     }
 
     // Also collect any diagrams/code screenshots in the parent container
