@@ -39,14 +39,35 @@ const NewtonExtractor = (() => {
   }
 
   /**
+   * Helper: Clean question statement text while strictly preserving code indentation and linebreaks.
+   * Converts non-breaking spaces (\u00A0) and tabs to standard spaces, and trims only trailing whitespace.
+   * @param {string} str 
+   * @returns {string}
+   */
+  function cleanCodePreservingText(str) {
+    if (!str) return '';
+    return str
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\u00A0/g, ' ')   // Convert &nbsp; to normal spaces
+      .replace(/\t/g, '    ')     // Normalize tabs to 4 spaces
+      .split('\n')
+      .map(line => line.replace(/[ \t]+$/, '')) // Trim trailing whitespace only, keep leading indent!
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n') // Collapse excessive 3+ blank lines to 1 blank line
+      .trim();
+  }
+
+  /**
    * Helper: Clean portal boilerplate (breadcrumbs, action buttons, progress bars)
-   * from the question statement.
+   * from the question statement while preserving code indentation.
    * @param {string} rawText 
    * @returns {string}
    */
   function cleanQuestionStatement(rawText) {
     if (!rawText) return '';
-    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const normalized = cleanCodePreservingText(rawText);
+    const lines = normalized.split('\n');
     const filtered = [];
 
     const ignorePatterns = [
@@ -60,20 +81,25 @@ const NewtonExtractor = (() => {
     ];
 
     for (const line of lines) {
+      const trimmed = line.trim();
       // Stop taking question statement lines if options block is reached
-      if (/^[A-D]$/i.test(line) || /^[A-D][\.\)\:\-]\s+/i.test(line)) {
+      if (/^[A-D]$/i.test(trimmed) || /^[A-D][\.\)\:\-]\s+/i.test(trimmed)) {
         break;
       }
-      if (ignorePatterns.some(pat => pat.test(line))) continue;
+      if (ignorePatterns.some(pat => pat.test(trimmed))) continue;
+      // Preserve the line with its leading indentation intact
       filtered.push(line);
     }
 
     // Skip course topic/module breadcrumb if followed by actual question
-    if (filtered.length > 1 && /(?:Revision|Assessment|Module|Lecture|Track)\s*$/i.test(filtered[0])) {
+    if (filtered.length > 1 && /(?:Revision|Assessment|Module|Lecture|Track)\s*$/i.test(filtered[0].trim())) {
       filtered.shift();
+      if (filtered.length > 0 && filtered[0].trim() === '') {
+        filtered.shift();
+      }
     }
 
-    return filtered.join('\n\n').trim();
+    return filtered.join('\n').trim();
   }
 
   /**
@@ -273,7 +299,17 @@ const NewtonExtractor = (() => {
     }
 
     if (questionEl) {
-      text = cleanText(questionEl.innerText || questionEl.textContent);
+      text = cleanCodePreservingText(questionEl.innerText || questionEl.textContent);
+      
+      // If container has a code block (like <pre>, <code>, or snippet container) outside questionEl, append it
+      const codeBlock = container.querySelector('pre, code, [class*="code-block" i], [class*="snippet" i]');
+      if (codeBlock && !questionEl.contains(codeBlock) && isVisible(codeBlock)) {
+        const codeText = cleanCodePreservingText(codeBlock.innerText || codeBlock.textContent);
+        if (codeText && !text.includes(codeText)) {
+          text = `${text}\n\n${codeText}`;
+        }
+      }
+
       // Collect images in question body
       questionEl.querySelectorAll('img').forEach(registerImage);
     } else {
@@ -283,7 +319,7 @@ const NewtonExtractor = (() => {
         .filter(el => !el.closest('[role="radiogroup"], [class*="option" i], [class*="choice" i]'));
 
       if (paragraphs.length > 0) {
-        text = cleanText(paragraphs[0].innerText);
+        text = cleanCodePreservingText(paragraphs[0].innerText || paragraphs[0].textContent);
       }
     }
 

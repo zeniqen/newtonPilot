@@ -126,6 +126,11 @@ CRITICAL INSTRUCTIONS FOR SHORT ANSWER:
      * print(a, b) separates arguments with a single space ' '.
      * print() without end adds a newline '\\n'.
      * NEVER add spaces between characters in the answer unless end=' ' was explicitly specified in the code.
+   - NESTED LOOPS & INDENTATION SCOPE:
+     * Examine code indentation strictly (e.g. 4 spaces = 1 indent level). Statements indented under an inner loop execute for every inner iteration. Statements indented under the outer loop execute once per outer iteration. Statements at outer indentation execute only once before/after loops.
+     * When simulating nested loops: build an explicit iteration table in "code_execution_trace":
+       (outer_loop_var, inner_loop_var, updated_vars, stdout_prints).
+     * Step through every iteration line-by-line until the termination or trigger condition is met. Do NOT guess or take mental shortcuts!
    - MUTABILITY: Track in-place modifications (e.g. list.append() returns None) vs returning new values.
 4. CHAIN-OF-THOUGHT SCHEMA:
    - You MUST compute "code_execution_trace" FIRST before concluding the answer.
@@ -167,6 +172,7 @@ REASONING PROTOCOL (Chain-of-Thought Scratchpad First):
      * Indexing & slicing bounds (stop index is non-inclusive; negative steps reverse direction).
      * Truthiness (e.g. bool([0]) is True).
      * Exact exception types (ValueError vs KeyError vs IndexError vs TypeError).
+     * Nested loops & indentation scoping (strictly determine whether statements belong to inner or outer loop based on space indentation; build an explicit iteration table in "code_execution_trace" tracking outer_var, inner_var, updated_vars, and prints).
 2. STEP 2 - OPTIONS EVALUATION (in "options_analysis"):
    - Compare the output or theoretical fact derived in Step 1 against EVERY single option (A, B, C, D).
    - Designate status as either "Correct" or "Incorrect" with a concrete explanation for each.

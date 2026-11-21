@@ -229,6 +229,35 @@ async function runTests() {
     console.log('✓ Test 8: Short answer space artifact and prefix reconciliation passed');
   }
 
+  // Test 9: Nested loop iteration table & indentation guidance in prompt
+  {
+    const provider = new OllamaProvider();
+    const loopQ = {
+      questionText: "What will be the value of v when the value 53 is printed?\nv = 1\nfor i in range(1, 6):\n    for j in range(1, i + 2):\n        v += i\n        print(i * j + v, end=' ')",
+      format: 'short_answer',
+      options: [],
+      hasTextInput: true
+    };
+
+    const prompt = provider.buildPrompt(loopQ);
+    assert.ok(prompt.includes('NESTED LOOPS & INDENTATION SCOPE'), 'Prompt must instruct on nested loops & indentation scope');
+    assert.ok(prompt.includes('build an explicit iteration table'), 'Prompt must mandate iteration table');
+
+    // Simulate trace finding 37 when 53 is printed
+    const parsed = {
+      code_execution_trace: 'i=1: j=1 -> v=2, print 3. j=2 -> v=3, print 5.\ni=2: j=1 -> v=5, print 7. j=2 -> v=7, print 11. j=3 -> v=9, print 15.\ni=3: j=1 -> v=12, print 15. j=2 -> v=15, print 21. j=3 -> v=18, print 27. j=4 -> v=21, print 33.\ni=4: j=1 -> v=25, print 29. j=2 -> v=29, print 37. j=3 -> v=33, print 45. j=4 -> v=37, print 53!\nCondition met: 53 is printed when v is 37.',
+      reasoning: 'At iteration i=4, j=4, v increases by 4 to 37. Then print(4*4 + 37) prints 53. The value of v is 37.',
+      concept_summary: 'Loop iteration tracking',
+      suggested_answer: '37',
+      options_analysis: [],
+      confidence: 0.99
+    };
+
+    const reconciled = provider.reconcileExplanation(parsed, loopQ);
+    assert.strictEqual(reconciled.suggested_answer, '37');
+    console.log('✓ Test 9: Nested loop iteration table & prompt verification passed');
+  }
+
   console.log('\nAll OllamaProvider tests passed successfully!');
 }
 

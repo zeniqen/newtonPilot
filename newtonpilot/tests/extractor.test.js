@@ -240,4 +240,46 @@ What is the return type of len()?`;
   console.log('✓ Test 5: External text input document fallback passed');
 }
 
+// Test Case 6: Nested Python loop indentation & non-breaking spaces preservation
+{
+  const rawPortalText = `Pattern printing using loops - Revision
+QUESTION 1/5
+Mark for review
+Clear Selection
+What will be the value of v when the value 53 is printed?
+
+v = 1
+for i in range(1, 6):
+    for j in range(1, i + 2):
+        v += i
+        print(i * j + v, end=" ")`;
+
+  const qHeading = createMockElement('div', { class: 'question-title' }, rawPortalText);
+  const textInput = createMockElement('input', {
+    type: 'text',
+    placeholder: 'Enter your answer here',
+    class: 'answer-box'
+  });
+
+  const qContainer = createMockElement('div', { class: 'question-container' }, '', [qHeading, textInput]);
+  qHeading.parentElement = qContainer;
+  textInput.parentElement = qContainer;
+
+  const mockDoc = createMockElement('body', {}, rawPortalText, [qContainer]);
+  qContainer.parentElement = mockDoc;
+
+  global.document = mockDoc;
+  const result = NewtonExtractor.extractCurrentQuestion();
+
+  assert.strictEqual(result.success, true);
+  assert.ok(result.questionText.includes('What will be the value of v when the value 53 is printed?'));
+  assert.ok(result.questionText.includes('v = 1'));
+  assert.ok(result.questionText.includes('for i in range(1, 6):'));
+  assert.ok(result.questionText.includes('    for j in range(1, i + 2):'), 'Inner loop must preserve 4-space indentation');
+  assert.ok(result.questionText.includes('        v += i'), 'Inner statement must preserve 8-space indentation');
+  assert.ok(result.questionText.includes('        print(i * j + v, end=" ")'), 'Print statement must preserve 8-space indentation');
+  assert.ok(!result.questionText.includes('v = 1\n\nfor i'), 'Code lines should not have artificial double blank lines');
+  console.log('✓ Test 6: Python nested loop indentation preservation passed');
+}
+
 console.log('All extractor unit tests passed successfully!');
