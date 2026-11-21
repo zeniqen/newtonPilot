@@ -4,7 +4,12 @@
  * and background local Ollama AI requests (Phase 2).
  */
 
+import NewtonPythonEngine from '../services/python-engine.js';
 import OllamaProvider from '../services/ollama-provider.js';
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.NewtonPythonEngine = NewtonPythonEngine;
+}
 
 // Configure DeclarativeNetRequest to ensure Ollama accepts requests from the extension
 async function registerOriginRule() {

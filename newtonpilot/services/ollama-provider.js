@@ -3,10 +3,18 @@
  * 
  * Provides an architectural client interface for local Ollama LLMs.
  * Features:
+ * - Hybrid Deterministic Execution (NewtonPythonEngine) + LLM Reasoning for 100% code accuracy
  * - Deterministic greedy sampling (temperature: 0.0) for maximum code evaluation accuracy
  * - Multimodal Vision support (passes base64 images to models like llava, llama3.2-vision)
  * - Chain-of-Thought Python execution reasoning to eliminate hallucinations
  */
+
+import NewtonPythonEngine from './python-engine.js';
+
+let PythonEngineClass = NewtonPythonEngine;
+if (typeof globalThis !== 'undefined' && globalThis.NewtonPythonEngine) {
+  PythonEngineClass = globalThis.NewtonPythonEngine;
+}
 
 class OllamaProvider {
   /**
@@ -22,6 +30,7 @@ class OllamaProvider {
     this.temperature = config.temperature ?? 0.0;
     this.timeoutMs = config.timeoutMs || 60000;
     this.isReady = false;
+    this.pythonEngine = config.pythonEngine || (PythonEngineClass ? new PythonEngineClass() : null);
   }
 
   /**
@@ -104,6 +113,11 @@ class OllamaProvider {
 
     const isShortAnswer = format === 'short_answer' || hasTextInput || (!options || options.length === 0);
 
+    const pySol = this.pythonEngine ? this.pythonEngine.solve(questionText) : null;
+    const pyEngineInstruction = (pySol && pySol.solved)
+      ? `\n[VERIFIED CODE EXECUTION RESULT]: Deterministic simulation has verified the exact output: "${pySol.answer}". Details: ${pySol.explanation}. You MUST align your execution trace, options analysis, and suggested answer with this verified mathematical result.\n`
+      : '';
+
     const imageInstruction = hasImages
       ? '\n[CRITICAL]: An image is attached to this question. Carefully examine the code snippet, diagram, or terminal output displayed in the image.'
       : '';
@@ -111,7 +125,7 @@ class OllamaProvider {
     if (isShortAnswer) {
       return `
 You are an authoritative Python & Computer Science assessment engine and code interpreter.
-Your goal is 100% accuracy on this Short Answer / Output Prediction / Fill-in-the-blank question.
+Your goal is 100% accuracy on this Short Answer / Output Prediction / Fill-in-the-blank question.${pyEngineInstruction}
 
 CRITICAL INSTRUCTIONS FOR SHORT ANSWER:
 1. This question does NOT have options (A, B, C, D). The student must type the EXACT answer directly into an input field.
@@ -159,7 +173,7 @@ Return your response in STRICT valid JSON matching this schema:
 
     return `
 You are an authoritative Python & Computer Science assessment engine and code interpreter.
-Your goal is 100% accuracy on this multiple-choice question.
+Your goal is 100% accuracy on this multiple-choice question.${pyEngineInstruction}
 
 REASONING PROTOCOL (Chain-of-Thought Scratchpad First):
 1. STEP 1 - CODE SIMULATION & VERIFICATION (in "code_execution_trace"):
@@ -252,6 +266,27 @@ Return your response in STRICT valid JSON matching this schema:
     // Enrich reasoning with execution trace if available
     if (trace && !reasoning.includes(trace)) {
       reasoning = `${trace}\n\n${reasoning}`.trim();
+    }
+
+    // Ground truth from deterministic Python execution engine
+    const pySol = this.pythonEngine ? this.pythonEngine.solve(questionData?.questionText) : null;
+    if (pySol && pySol.solved) {
+      console.log(`[OllamaProvider] NewtonPythonEngine verified solution: answer="${pySol.answer}" (${pySol.explanation})`);
+      if (isShortAnswer) {
+        suggestedAnswer = pySol.answer;
+        reasoning = `[Deterministic Python Engine Verified]: ${pySol.explanation}\n\n${reasoning}`;
+      } else {
+        const matchedOpt = (questionData?.options || []).find(o => {
+          const t = String(o.text || '').trim();
+          return t === pySol.answer ||
+                 t === `Option ${pySol.answer}` ||
+                 new RegExp(`\\b${pySol.answer}\\b`).test(t);
+        });
+        if (matchedOpt) {
+          suggestedAnswer = `Option ${matchedOpt.label}: ${matchedOpt.text}`;
+          reasoning = `[Deterministic Python Engine Verified]: Option ${matchedOpt.label} is mathematically verified. ${pySol.explanation}\n\n${reasoning}`;
+        }
+      }
     }
 
     // --- CASE 1: Short Answer Questions ---

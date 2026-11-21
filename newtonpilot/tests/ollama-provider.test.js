@@ -258,6 +258,32 @@ async function runTests() {
     console.log('✓ Test 9: Nested loop iteration table & prompt verification passed');
   }
 
+  // Test 10: Deterministic NewtonPythonEngine overrides LLM arithmetic hallucination (32 -> 37)
+  {
+    const provider = new OllamaProvider();
+    const loopQ = {
+      questionText: 'Pattern printing using loops - Revision\nQUESTION 1/5\nWhat will be the value of v when the value 53 is printed?\n\nv = 1\nfor i in range(1, 6):\n    for j in range(1, i + 2):\n        v += i\n        print(i * j + v, end=" ")',
+      format: 'short_answer',
+      options: [],
+      hasTextInput: true
+    };
+
+    // Simulate LLM hallucinating 32 (as seen in user screenshot!)
+    const hallucinatedParsed = {
+      code_execution_trace: '(i=1, j=1, v=2, stdout_prints=2)...',
+      reasoning: 'At i=4, j=3, v is 32',
+      concept_summary: 'Loop iteration',
+      suggested_answer: '32',
+      options_analysis: [],
+      confidence: 0.99
+    };
+
+    const reconciled = provider.reconcileExplanation(hallucinatedParsed, loopQ);
+    assert.strictEqual(reconciled.suggested_answer, '37', 'Deterministic engine must override hallucinated 32 with 37');
+    assert.ok(reconciled.reasoning.includes('Deterministic Python Engine Verified'), 'Reasoning must include engine verification');
+    console.log('✓ Test 10: Deterministic NewtonPythonEngine overrides hallucinated 32 with 37');
+  }
+
   console.log('\nAll OllamaProvider tests passed successfully!');
 }
 
