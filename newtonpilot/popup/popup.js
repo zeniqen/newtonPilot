@@ -166,8 +166,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           isOllamaOnline = false;
           aiConnectionStatus.className = 'ai-status-pill offline';
           aiStatusText.textContent = 'Offline';
-          aiNotice.classList.remove('hidden');
-          aiNoticeText.innerHTML = 'Ollama server offline. Run <code>ollama serve</code> in terminal to enable AI explanations.';
+          if (!currentExplanationAnswer) {
+            aiNotice.classList.remove('hidden');
+            aiNoticeText.innerHTML = 'Ollama server offline. Run <code>ollama serve</code> in terminal to enable AI explanations.';
+          }
           return;
         }
 
@@ -234,6 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderExplanation(data) {
     if (!data) return;
 
+    aiNotice.classList.add('hidden');
     aiLoading.classList.add('hidden');
     aiResultCard.classList.remove('hidden');
     reExplainBtn.classList.remove('hidden');
